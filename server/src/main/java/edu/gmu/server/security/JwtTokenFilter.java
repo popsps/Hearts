@@ -35,7 +35,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                                   FilterChain filterChain) throws ServletException, IOException {
 
     try {
-      log.info("Filter request; looking for JWT");
+      log.info("Filter request; looking for authorization token");
       final Cookie[] cookies = request.getCookies();
       final Optional<Cookie> sessionCookie = Arrays.stream(cookies)
         .filter(cookie -> cookie.getName().matches("^session$")).findFirst();

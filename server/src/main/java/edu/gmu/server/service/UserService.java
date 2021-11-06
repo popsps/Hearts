@@ -28,12 +28,10 @@ import java.util.Map;
 @Service
 public class UserService {
   private final UserRepository userRepository;
-  private final StatsRepository statsRepository;
 
   @Autowired
-  public UserService(UserRepository userRepository, StatsRepository statsRepository) {
+  public UserService(UserRepository userRepository) {
     this.userRepository = userRepository;
-    this.statsRepository = statsRepository;
   }
 
   @Transactional
