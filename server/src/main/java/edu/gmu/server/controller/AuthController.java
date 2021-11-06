@@ -37,13 +37,6 @@ public class AuthController {
     this.cookieProvider = cookieProvider;
   }
 
-  @GetMapping("/users")
-  public Page<User> getAllUsers(@RequestParam(defaultValue = "0", required = false) int page,
-                                @RequestParam(defaultValue = "20", required = false) int limit,
-                                @RequestParam(required = false) Map<String, String> filters) {
-    return this.authService.getAllUsers(page, limit, filters);
-  }
-
   @PostMapping("/register")
   @ResponseStatus(HttpStatus.CREATED)
   public User register(@RequestBody RegisterDto registerDto) {
@@ -62,29 +55,7 @@ public class AuthController {
     return this.authService.getProfileInfo(user);
   }
 
-  @PostMapping("/upload-profile-pic")
-  @ResponseStatus(HttpStatus.CREATED)
-  public void uploadProfilePicture(@RequestParam(name = "file", required = true) MultipartFile picture,
-                                   @AuthenticationPrincipal UserDetails principal) {
-    try {
-      this.authService.uploadProfilePicture(principal, picture);
-    } catch (HeartsBadCredentialsException e) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bad Credentials");
-    } catch (IOException | SQLException e) {
-      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong processing your request");
-    }
-  }
 
-  @GetMapping(value = "/profile-pic", produces = MediaType.IMAGE_JPEG_VALUE)
-  public byte[] getProfilePicture(@AuthenticationPrincipal UserDetails principal,
-                                  HttpServletResponse response) {
-    try {
-      response.setHeader("Content-disposition", "attachment; filename=profile.jpeg");
-      return this.authService.getProfilePicture(principal);
-    } catch (HeartsBadCredentialsException e) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bad Credentials");
-    } catch (HeartsResourceNotFoundException e) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "A Profile picture not found");
-    }
-  }
+
+
 }
