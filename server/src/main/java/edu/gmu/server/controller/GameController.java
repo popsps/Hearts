@@ -72,11 +72,6 @@ public class GameController {
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No Game is ready"));
   }
 
-  // TODO: 11/11/2021 game started play
-  @PostMapping("/current/play/enter")
-  public void enterGame(@AuthenticationPrincipal UserDetails userDetails) {
-  }
-
   @GetMapping("/current/play/heartbeat")
   public GameDto heartbeat(@AuthenticationPrincipal UserDetails currentUser) {
     try {
