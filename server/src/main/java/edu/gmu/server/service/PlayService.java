@@ -14,6 +14,7 @@ import edu.gmu.server.repository.GameRepository;
 import edu.gmu.server.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,7 +33,7 @@ public class PlayService {
   private final Card twoOfClubs = new Card(Suit.CLUBS, Rank.TWO);
   private final Card queenOfSpades = new Card(Suit.SPADES, Rank.QUEEN);
   private final int TIME_OUT = 3000;
-  private ConcurrentMap<String, GameManager> gamePool;
+  private final ConcurrentMap<String, GameManager> gamePool;
   private final ConcurrentMap<String, User> usersJoining;
   private final UtilService utilService;
   private final DeckService deckService;
@@ -58,6 +60,7 @@ public class PlayService {
     this.assertUserTurn(username, gameManager);
     this.assertUserOnTime(username, gameManager);
     this.assertCardPlayedAllowed(username, card, gameManager);
+    this.updateLastAccessTime(gameManager);
     this.playCard(username, card, gameManager);
     this.resolveGame(username, gameManager);
     if (gameManager.getCardsRemaining() == 0) {
@@ -146,6 +149,7 @@ public class PlayService {
       GameManager gameManager = this.gamePool.get(username);
       // if user is in game
       if (gameManager != null) {
+        this.updateLastAccessTime(gameManager);
         // if game is not started. init game
         if (gameManager.getStatus().equals(Status.NOT_STARTED)) {
           return this.initGame(currentUser);
@@ -304,8 +308,11 @@ public class PlayService {
     if (this.gamePool.containsValue(gameManager) && this.isGameOver(gameManager)) {
       // save to database
       this.saveGameToDatabase(gameManager);
+      LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+      gameManager.setSessionEnded(now);
+      gameManager.setStatus(Status.ENDED);
       //remove from game pool
-      this.removeGameFromPool(gameManager);
+      // this.removeGameFromPool(gameManager);
     }
   }
 
@@ -407,9 +414,32 @@ public class PlayService {
     });
   }
 
-  private void removeGameFromPool(GameManager gameManager) {
-    this.gamePool = this.gamePool.entrySet().stream()
-      .filter(gameSet -> !gameSet.getValue().equals(gameManager))
-      .collect(Collectors.toConcurrentMap(entry -> entry.getKey(), entry -> entry.getValue()));
+  private void updateLastAccessTime(GameManager gameManager) {
+    LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+    gameManager.setLastAccessTime(now);
+  }
+
+  @Scheduled(initialDelay = 2, fixedRate = 2, timeUnit = TimeUnit.MINUTES)
+  public void inactiveGamesRemover() {
+    log.info("Running inactive game removal task...");
+    log.info("Removing Games after 5 minutes of inactivity...");
+    LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+    synchronized (this.gamePool) {
+      for (Map.Entry<String, GameManager> entry : this.gamePool.entrySet()) {
+        GameManager game = entry.getValue();
+        // remove finished games after 5 minutes of inactivity
+        if (game.getStatus().equals(Status.ENDED) &&
+          now.isAfter(game.getSessionEnded().plusMinutes(5))) {
+          this.gamePool.remove(entry.getKey());
+          log.info("The finished Game {} is removed after 5 minutes of inactivity", game.getId());
+        }
+        // remove hanging games after 5 minutes of inactivity
+        if (game.getStatus().equals(Status.IN_PROGRESS) &&
+          now.isAfter(game.getLastAccessTime().plusMinutes(5))) {
+          this.gamePool.remove(entry.getKey());
+          log.info("The hanging Game {} is removed after 5 minutes of inactivity", game.getId());
+        }
+      }
+    }
   }
 }
