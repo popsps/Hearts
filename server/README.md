@@ -2,6 +2,8 @@
 
 ## Installation and Setup
 
+...
+
 ## Rest API
 
 ### Registering a new user
