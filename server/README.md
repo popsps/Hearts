@@ -4,7 +4,7 @@
 
 ...
 
-## Rest API
+## API Endpoints
 
 ### Registering a new user
 
