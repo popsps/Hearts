@@ -23,7 +23,7 @@ public class JwtProvider {
   final String privateKey;
   final String publicKey;
 
-  public JwtProvider(@Value("${security.jwt.access_token.expiration}") long validityInMilliseconds,
+  public JwtProvider(@Value("${security.jwt.access_token.expiration:800000}") long validityInMilliseconds,
                      @Value("${AUTH_JWT_PRIVATE_KEY}") final String privateKey,
                      @Value("${AUTH_JWT_PUBLIC_KEY}") final String publicKey) {
     this.validityInMilliseconds = validityInMilliseconds;

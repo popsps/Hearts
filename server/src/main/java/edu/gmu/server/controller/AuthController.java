@@ -46,5 +46,13 @@ public class AuthController {
     return this.authService.getProfileInfo(user);
   }
 
-
+  @DeleteMapping("/logout")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void logout(HttpServletResponse response) {
+    final Cookie sessionCookie = new Cookie("session", null);
+    sessionCookie.setSecure(true);
+    sessionCookie.setHttpOnly(true);
+    sessionCookie.setPath("/");
+    response.addCookie(sessionCookie);
+  }
 }
