@@ -29,13 +29,15 @@ public class AuthService {
   private final StatsRepository statsRepository;
   private final PasswordEncoder passwordEncoder;
   private final AuthenticationManager authenticationManager;
+  private final UtilService utilService;
 
   @Autowired
-  public AuthService(UserRepository userRepository, StatsRepository statsRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager) {
+  public AuthService(UserRepository userRepository, StatsRepository statsRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, UtilService utilService) {
     this.userRepository = userRepository;
     this.statsRepository = statsRepository;
     this.passwordEncoder = passwordEncoder;
     this.authenticationManager = authenticationManager;
+    this.utilService = utilService;
   }
 
 
@@ -66,7 +68,7 @@ public class AuthService {
     newUser.setEmail(registerDto.getEmail());
     newUser.setPassword(this.passwordEncoder.encode(registerDto.getPassword()));
     newUser.setRole("PLAYER");
-    String now = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_DATE_TIME);
+    String now = this.utilService.getCurrentDateTimeUTCString();
     newUser.setCreateTime(now);
     newUser.setLastAccessed(now);
     return newUser;
