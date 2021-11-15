@@ -43,9 +43,12 @@ public class GameController {
   }
 
   @PostMapping("/join")
-  public boolean joinGame(@AuthenticationPrincipal UserDetails userDetails) {
+  public String joinGame(@AuthenticationPrincipal UserDetails userDetails) {
     try {
-      return this.gameService.joinNewGame(userDetails);
+      if (this.gameService.joinNewGame(userDetails))
+        return "You have successfully placed in the joining pool";
+      else
+        return "We could not process your request";
     } catch (JsonProcessingException e) {
       log.error("Something went wrong {}", e.getMessage());
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
@@ -76,7 +79,10 @@ public class GameController {
   public GameDto heartbeat(@AuthenticationPrincipal UserDetails currentUser) {
     try {
       return this.playService.heartbeat(currentUser);
-    } catch (JsonProcessingException | HeartsGameNotExistException e) {
+    } catch (HeartsGameNotExistException e) {
+      log.error(e.toString());
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "You are not in a game");
+    } catch (JsonProcessingException e) {
       log.error(e.toString());
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong");
     }
@@ -92,6 +98,15 @@ public class GameController {
       HeartsInvalidTurnException | JsonProcessingException e) {
       log.error(e.toString());
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Request");
+    }
+  }
+
+  @PostMapping("/disconnect")
+  public String disconnect(@AuthenticationPrincipal UserDetails currentUser) {
+    if (this.gameService.disconnect(currentUser)) {
+      return "You have successfully disconnected";
+    } else {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "You are not in a game or in search for one");
     }
   }
 

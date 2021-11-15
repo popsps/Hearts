@@ -129,11 +129,39 @@ public class GameService {
     }
   }
 
-  public void removeUserFromJoiningPool(UserDetails userDetails) {
-    User isRemoved = this.usersJoining.remove(userDetails.getUsername());
-    if (isRemoved != null)
-      log.info("User {} has been removed from the joining pool", userDetails.getUsername());
+  public boolean removeUserFromJoiningPool(UserDetails currentUser) {
+    String username = currentUser.getUsername();
+    User removedUser = this.usersJoining.remove(username);
+    if (removedUser != null) {
+      log.info("User {} has been removed from the joining pool", username);
+      return true;
+    } else
+      return false;
   }
 
+  private boolean removeUserFromGamePool(UserDetails currentUser) {
+    String username = currentUser.getUsername();
+    GameManager removedUserGame = this.gamePool.remove(username);
+    if (removedUserGame != null) {
+      log.info("User {} has been removed from the joining pool", username);
+      return true;
+    } else
+      return false;
+  }
 
+  /**
+   * Remove the user from joining pool. If user is looking for a new game they will be removed
+   * from the list of the player looking for a new game.
+   * Remove the user from a game. If user is in a game they will be removed and disconnected from it.
+   *
+   * @param currentUser
+   */
+  public boolean disconnect(UserDetails currentUser) {
+    boolean gameDisconnected = this.removeUserFromJoiningPool(currentUser);
+    boolean joinersDisconnected = this.removeUserFromGamePool(currentUser);
+    if (gameDisconnected || joinersDisconnected)
+      return true;
+    else
+      return false;
+  }
 }

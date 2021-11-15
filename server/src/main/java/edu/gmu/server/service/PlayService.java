@@ -235,10 +235,6 @@ public class PlayService {
     player.setAllowedCards(allowedCards);
   }
 
-  public void clearCards(List<Card> cards) {
-    cards = new ArrayList<>();
-  }
-
   public void addPlayer(Player player, GameManager gameManager) throws HeartsGameIsFullException {
     if (gameManager.getPlayers() == null)
       gameManager.setPlayers(new ArrayList<>(4));
@@ -421,8 +417,8 @@ public class PlayService {
 
   @Scheduled(initialDelay = 2, fixedRate = 2, timeUnit = TimeUnit.MINUTES)
   public void inactiveGamesRemover() {
-    log.info("Running inactive game removal task...");
-    log.info("Removing Games after 5 minutes of inactivity...");
+    log.warn("Running inactive game removal task...");
+    log.warn("Removing Games after 5 minutes of inactivity...");
     LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
     synchronized (this.gamePool) {
       for (Map.Entry<String, GameManager> entry : this.gamePool.entrySet()) {
