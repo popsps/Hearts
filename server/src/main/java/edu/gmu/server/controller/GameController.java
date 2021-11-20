@@ -26,12 +26,10 @@ import java.util.concurrent.TimeoutException;
 @RequestMapping("/api/games")
 public class GameController {
   private final GameService gameService;
-  private final PlayService playService;
 
   @Autowired
-  public GameController(GameService gameService, PlayService playService) {
+  public GameController(GameService gameService) {
     this.gameService = gameService;
-    this.playService = playService;
   }
 
   @GetMapping
@@ -69,36 +67,11 @@ public class GameController {
     }
   }
 
+  // TODO: 11/19/2021 depreciated using heartbeat
   @GetMapping("/join/me")
   public GameDto getJoinStatus(@AuthenticationPrincipal UserDetails userDetails) {
     return this.gameService.getJoinStatus(userDetails)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No Game is ready"));
-  }
-
-  @GetMapping("/current/play/heartbeat")
-  public GameDto heartbeat(@AuthenticationPrincipal UserDetails currentUser) {
-    try {
-      return this.playService.heartbeat(currentUser);
-    } catch (HeartsGameNotExistException e) {
-      log.error(e.toString());
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "You are not in a game");
-    } catch (JsonProcessingException e) {
-      log.error(e.toString());
-      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong");
-    }
-  }
-
-  @PostMapping("/current/play/card")
-  public GameDto play(@AuthenticationPrincipal UserDetails userDetails,
-                      @RequestBody Card card) {
-    try {
-      return this.playService.play(userDetails, card);
-    } catch (HeartsGameIsFullException | HeartsPlayerNotInGameException |
-      HeartsCardNotAllowedException | HeartsTimeoutException |
-      HeartsInvalidTurnException | JsonProcessingException e) {
-      log.error(e.toString());
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Request");
-    }
   }
 
   @PostMapping("/disconnect")
