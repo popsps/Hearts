@@ -34,8 +34,10 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
   @Override
   protected void configure(HttpSecurity http) throws Exception {
     http.csrf().disable();
+    http.headers().contentSecurityPolicy("script-src 'self'");
+    http.headers().httpStrictTransportSecurity().includeSubDomains(true).maxAgeInSeconds(31536000);
     http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-    http.authorizeRequests().antMatchers("/api/auth/**", "/secured/room/**").permitAll();
+    http.authorizeRequests().antMatchers("/api/auth/**").permitAll();
     http.authorizeRequests().anyRequest().authenticated();
     http.addFilterBefore(
       new JwtTokenFilter(userDetailsService, jwtProvider, cookieProvider),

@@ -17,7 +17,9 @@ Request POST https://localhost:8081/api/auth/register
   "username": "winniepooh",
   "password": "Password1!",
   "email": "winniepooh@disnep.com",
-  "nickname": "Winnie the pooh"
+  "nickname": "Winnie the pooh",
+  "firstname": "Winnie",
+  "lastname": "Pooh"
 }
 ```
 
@@ -38,7 +40,7 @@ Request POST https://localhost:8081/api/games/join
 
 ### Send periodical heartbeats after joining a game
 
-Request GET https://localhost:8081/api/games/current/play/heartbeat
+Request GET https://localhost:8081/api/play/heartbeat
 
 Example Response body
 
@@ -129,7 +131,7 @@ Example Response body
 
 ### Play a card
 
-Request POST https://localhost:8081/api/games/current/play/card
+Request POST https://localhost:8081/api/play/card
 
 ```json
 {
