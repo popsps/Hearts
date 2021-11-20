@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 
 @Slf4j
 @RestController
@@ -37,7 +38,7 @@ public class AuthController {
 
   @PostMapping("/authenticate")
   @ResponseStatus(HttpStatus.CREATED)
-  public User authenticate(@RequestBody AuthenticateDto authenticateDto, HttpServletResponse response) {
+  public User authenticate(@Valid @RequestBody AuthenticateDto authenticateDto, HttpServletResponse response) {
     final User user = this.authService.authenticate(authenticateDto)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication failed"));
     final Cookie sessionCookie = this.cookieProvider.createSessionCookie(user)
