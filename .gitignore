@@ -3,4 +3,5 @@
 keystore/
 *.bak
 /.idea/
-.env
+!/.env
+!/.idea/
