@@ -4,6 +4,7 @@ import edu.gmu.server.dto.AuthenticateDto;
 import edu.gmu.server.dto.RegisterDto;
 import edu.gmu.server.entity.Stats;
 import edu.gmu.server.entity.User;
+import edu.gmu.server.entity.UserInfo;
 import edu.gmu.server.repository.StatsRepository;
 import edu.gmu.server.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -80,7 +81,6 @@ public class AuthService {
   }
 
   private Optional<User> loadAuthenticatedUser(final String id, final String password) {
-    String username = null;
     try {
       Authentication authentication = this.authenticationManager
         .authenticate(new UsernamePasswordAuthenticationToken(id, password));

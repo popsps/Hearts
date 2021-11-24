@@ -27,6 +27,7 @@ public class GameManager {
   private LocalDateTime sessionCreated;
   private LocalDateTime sessionEnded;
   private LocalDateTime lastAccessTime;
+  private int timer;
   private AtomicInteger countDawn = new AtomicInteger(GAME_SIZE);
   //  ===================================================================
   private int cardsRemaining = DECK_SIZE;

@@ -2,3 +2,5 @@
 /test/
 keystore/
 *.bak
+/.idea/
+.env

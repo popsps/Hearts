@@ -31,14 +31,14 @@ public class AuthController {
 
   @PostMapping("/register")
   @ResponseStatus(HttpStatus.CREATED)
-  public User register(@RequestBody RegisterDto registerDto) {
+  public User register(@RequestBody @Valid RegisterDto registerDto) {
     return this.authService.register(registerDto)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "user is not available"));
   }
 
   @PostMapping("/authenticate")
   @ResponseStatus(HttpStatus.CREATED)
-  public User authenticate(@Valid @RequestBody AuthenticateDto authenticateDto, HttpServletResponse response) {
+  public User authenticate(@RequestBody @Valid AuthenticateDto authenticateDto, HttpServletResponse response) {
     final User user = this.authService.authenticate(authenticateDto)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication failed"));
     final Cookie sessionCookie = this.cookieProvider.createSessionCookie(user)

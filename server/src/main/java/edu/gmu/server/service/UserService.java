@@ -1,9 +1,10 @@
 package edu.gmu.server.service;
 
 import edu.gmu.server.entity.User;
+import edu.gmu.server.entity.UserInfo;
 import edu.gmu.server.exception.HeartsBadCredentialsException;
 import edu.gmu.server.exception.HeartsResourceNotFoundException;
-import edu.gmu.server.repository.StatsRepository;
+import edu.gmu.server.repository.UserInfoRepository;
 import edu.gmu.server.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,16 +29,18 @@ import java.util.Map;
 @Service
 public class UserService {
   private final UserRepository userRepository;
+  private final UserInfoRepository userInfoRepository;
 
   @Autowired
-  public UserService(UserRepository userRepository) {
+  public UserService(UserRepository userRepository, UserInfoRepository userInfoRepository) {
     this.userRepository = userRepository;
+    this.userInfoRepository = userInfoRepository;
   }
 
   @Transactional
-  public Page<User> getAllUsers(int page, int limit, Map<String, String> filters) {
+  public Page<UserInfo> getAllUsers(int page, int limit, Map<String, String> filters) {
     Pageable pageable = PageRequest.of(page, limit);
-    return this.userRepository.findAll(pageable);
+    return this.userInfoRepository.findAll(pageable);
   }
 
   @Transactional

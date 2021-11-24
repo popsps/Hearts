@@ -15,6 +15,7 @@ import edu.gmu.server.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.parameters.P;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +33,7 @@ public class PlayService {
 
   private final Card twoOfClubs = new Card(Suit.CLUBS, Rank.TWO);
   private final Card queenOfSpades = new Card(Suit.SPADES, Rank.QUEEN);
-  private final int TIME_OUT = 3000;
+  private final int TIME_OUT = 30;
   private final ConcurrentMap<String, GameManager> gamePool;
   private final ConcurrentMap<String, User> usersJoining;
   private final UtilService utilService;
@@ -154,6 +155,8 @@ public class PlayService {
         if (gameManager.getStatus().equals(Status.NOT_STARTED)) {
           return this.initGame(currentUser);
         } else {
+          // if one of player has missed their turn
+          this.handleMissedTurns(gameManager);
           // if the round is over
           if (gameManager.getCardsRemaining() == 0) {
             this.startNewRoundOrFinalize(gameManager);
@@ -166,12 +169,31 @@ public class PlayService {
     }
   }
 
+  private void handleMissedTurns(GameManager gameManager) throws JsonProcessingException {
+    Optional<Player> activePlayerOptional = gameManager
+      .getPlayers().stream().filter(player -> player.isTurn()).findAny();
+    if (activePlayerOptional.isPresent()) {
+      Player activePlayer = activePlayerOptional.get();
+      LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+      if (now.isAfter(activePlayer.getTurnExpireAt())) {
+        synchronized (gameManager) {
+          gameManager.log(String.format("Player %s got disconnected", activePlayer.getNickname()));
+          log.error("Player {} is disconnected. finalizing the game...", activePlayer.getUsername());
+          activePlayer.setPointsTakenOverall(126);
+          this.resolvePlacement(gameManager);
+          this.finalizeGame(gameManager);
+        }
+      }
+    }
+  }
+
   public GameDto initGame(UserDetails currentUser) {
     String username = currentUser.getUsername();
     GameManager gameManager = this.gamePool.get(username);
     log.info("Player {} initializing new game {}", username, gameManager.getId());
     gameManager.log(String.format("Player %s initializing new game %s", username, gameManager.getId()));
     gameManager.setStatus(Status.IN_PROGRESS);
+    gameManager.setTimer(this.TIME_OUT);
     // TODO: 11/14/2021 revert deck back to 4 player size
     // Deck newDeck = new Deck();
     Deck newDeck = new Deck(16);
@@ -260,6 +282,7 @@ public class PlayService {
     gameDto.setLeadingSuit(gameManager.getLeadingSuit());
     gameDto.setCardsRemaining(gameManager.getCardsRemaining());
     gameDto.setBoard(gameManager.getBoard());
+    gameDto.setTimer(gameManager.getTimer());
     return gameDto;
   }
 
@@ -285,7 +308,6 @@ public class PlayService {
           this.resolvePlacement(gameManager);
         });
         if (this.isGameOver(gameManager)) {
-          gameManager.setStatus(Status.ENDED);
           this.finalizeGame(gameManager);
         } else {
           gameManager.log(String.format("Starting a new round"));
@@ -295,20 +317,18 @@ public class PlayService {
           gameManager.setCardsRemaining(gameManager.getDECK_SIZE());
           this.initDetermineTurn(gameManager);
         }
-
       }
     }
   }
 
   private synchronized void finalizeGame(GameManager gameManager) throws JsonProcessingException {
-    if (this.gamePool.containsValue(gameManager) && this.isGameOver(gameManager)) {
+    if (this.gamePool.containsValue(gameManager) && this.isGameOver(gameManager)
+      && !gameManager.getStatus().equals(Status.ENDED)) {
       // save to database
       this.saveGameToDatabase(gameManager);
       LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
       gameManager.setSessionEnded(now);
       gameManager.setStatus(Status.ENDED);
-      //remove from game pool
-      // this.removeGameFromPool(gameManager);
     }
   }
 
@@ -341,7 +361,7 @@ public class PlayService {
     Player player = this.getPlayer(username, gameManager);
     LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
     player.setPlayTime(now);
-    if (!now.isBefore(player.getTurnExpireAt())) {
+    if (now.isAfter(player.getTurnExpireAt())) {
       log.error("Player {} attempted to play a card while timed out", username);
       throw new HeartsTimeoutException("");
     }
@@ -357,7 +377,12 @@ public class PlayService {
 
   private void assertUserInGame(String username, GameManager gameManager) {
     // throw exception in getPlayer
-    Player player = this.getPlayer(username, gameManager);
+    try {
+      this.getPlayer(username, gameManager);
+    } catch (NullPointerException e) {
+      log.error("No players in game detected");
+      throw new HeartsPlayerNotInGameException("Player not found");
+    }
   }
 
   private void resolvePlacement(GameManager gameManager) {
@@ -367,7 +392,7 @@ public class PlayService {
     for (int i = 0; i < playerSorted.size(); i++) {
       final int index = i;
       Player player = gameManager.getPlayers().stream()
-        .filter(p -> p.getId() == playerSorted.get(index).getId())
+        .filter(p -> p.getId().equals(playerSorted.get(index).getId()))
         .findFirst()
         .orElseThrow(() -> new HeartsPlayerNotInGameException("Player not found"));
       player.setPlacement(i + 1);
@@ -377,18 +402,6 @@ public class PlayService {
   @Transactional
   protected void saveGameToDatabase(GameManager gameManager) throws JsonProcessingException {
     log.info("Saving game {}...", gameManager.getId());
-    Game game = new Game();
-    String jsonLogs = objectMapper.writeValueAsString(gameManager.getLogs());
-    game.setSessionCreated(gameManager.getSessionCreated());
-    game.setLogs(jsonLogs);
-    Set<UserDto> users = gameManager.getPlayers().stream()
-      .map(player -> new UserDto(player.getId(), player.getUsername(), player.getNickname()))
-      .collect(Collectors.toSet());
-    game.setUsers(users);
-    game.setStatus(Status.ENDED);
-    LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
-    game.setSessionEnded(now);
-    this.gameRepository.save(game);
     // update stats
     gameManager.getPlayers().stream().forEach(player -> {
       User user = this.userRepository.findByUsername(player.getUsername())
@@ -396,6 +409,10 @@ public class PlayService {
       Stats stats = user.getStats();
       int win = (player.getPlacement() == 1) ? 1 : 0;
       int lost = (player.getPlacement() > 1) ? 1 : 0;
+      if (win == 1)
+        gameManager.log(String.format("Player %s won the game", player.getNickname()));
+      if (lost == 1)
+        gameManager.log(String.format("Player %s lost the game", player.getNickname()));
       stats.setWin(stats.getWin() + win);
       stats.setLost(stats.getLost() + lost);
       int numOfGames = stats.getWin() + stats.getLost();
@@ -408,6 +425,20 @@ public class PlayService {
       user.setStats(stats);
       this.userRepository.save(user);
     });
+    // save game info
+    Game game = new Game();
+    String jsonLogs = objectMapper.writeValueAsString(gameManager.getLogs());
+    game.setSessionCreated(gameManager.getSessionCreated());
+    game.setLogs(jsonLogs);
+    Set<UserDto> users = gameManager.getPlayers().stream()
+      .map(player -> new UserDto(player.getId(), player.getUsername(), player.getNickname()))
+      .collect(Collectors.toSet());
+    game.setUsers(users);
+    game.setStatus(Status.ENDED);
+    LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+    game.setSessionEnded(now);
+    this.gameRepository.save(game);
+
   }
 
   private void updateLastAccessTime(GameManager gameManager) {

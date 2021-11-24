@@ -30,7 +30,6 @@ public class GameService {
 
   private Long gameId = 0L;
   private final int GAME_MAX_SIZE = 2;
-  private final int TIME_OUT = 5;
 
   private final GameRepository gameRepository;
   private final UserRepository userRepository;

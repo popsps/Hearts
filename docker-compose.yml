@@ -1,0 +1,51 @@
+version: "3"
+
+networks:
+  heartsnet:
+
+services:
+  hearts-db:
+    image: hearts-db
+    build: ./db
+    container_name: hearts-db
+    environment:
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE
+    networks:
+      heartsnet:
+        aliases:
+          - hearts-db
+
+  hearts-server:
+    image: hearts-server
+    build: ./server
+    container_name: hearts-server
+    depends_on:
+      - hearts-db
+    environment:
+      - DB_HOST
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - DB_PORT
+      - SSL_PATH
+      - SSL_PASSWORD
+      - SSL_ALIAS
+      - AUTH_JWT_PRIVATE_KEY
+      - AUTH_JWT_PUBLIC_KEY
+    networks:
+      heartsnet:
+        aliases:
+          - hearts-server
+
+  hearts-client:
+    image: hearts-client
+    build: ./test/client
+    container_name: hearts-client
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      heartsnet:
+        aliases:
+          - hearts-client

@@ -1,6 +1,7 @@
 package edu.gmu.server.controller;
 
 import edu.gmu.server.entity.User;
+import edu.gmu.server.entity.UserInfo;
 import edu.gmu.server.exception.HeartsBadCredentialsException;
 import edu.gmu.server.exception.HeartsResourceNotFoundException;
 import edu.gmu.server.service.UserService;
@@ -32,9 +33,9 @@ public class UserController {
   }
 
   @GetMapping
-  public Page<User> getAllUsers(@RequestParam(defaultValue = "0", required = false) int page,
-                                @RequestParam(defaultValue = "20", required = false) int limit,
-                                @RequestParam(required = false) Map<String, String> filters) {
+  public Page<UserInfo> getAllUsers(@RequestParam(defaultValue = "0", required = false) int page,
+                                    @RequestParam(defaultValue = "20", required = false) int limit,
+                                    @RequestParam(required = false) Map<String, String> filters) {
     return this.userService.getAllUsers(page, limit, filters);
   }
 

@@ -21,13 +21,13 @@ public class GameDto {
   private Suit leadingSuit;
   private boolean heartBroken;
   private int cardsRemaining;
-  private LocalDateTime sessionEnded;
+  private int timer;
   private List<PlayerDto> opponents;
   private Map<String, Card> board;
   private Player you;
   private Status status;
   private LocalDateTime sessionCreated;
-
+  private LocalDateTime sessionEnded;
   public GameDto(Long id, Status status) {
     this.setId(id);
     this.setStatus(status);
