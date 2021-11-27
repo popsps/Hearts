@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -45,6 +47,14 @@ public class AuthController {
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to issue credentials"));
     response.addCookie(sessionCookie);
     return this.authService.getProfileInfo(user);
+  }
+
+  @GetMapping("/session")
+  public User getSession(@AuthenticationPrincipal UserDetails currentUser) {
+    User user = new User();
+    String username = currentUser.getUsername();
+    user.setUsername(username);
+    return user;
   }
 
   @DeleteMapping("/logout")

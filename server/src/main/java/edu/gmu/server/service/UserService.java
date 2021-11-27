@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,6 +24,7 @@ import javax.transaction.Transactional;
 import java.io.IOException;
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -41,6 +43,13 @@ public class UserService {
   public Page<UserInfo> getAllUsers(int page, int limit, Map<String, String> filters) {
     Pageable pageable = PageRequest.of(page, limit);
     return this.userInfoRepository.findAll(pageable);
+  }
+
+  @Transactional
+  public List<UserInfo> getAllUsers() {
+    Sort sort = Sort.by("stats.win").descending()
+      .and(Sort.by("stats.lost").ascending());
+    return this.userInfoRepository.findAll(sort);
   }
 
   @Transactional

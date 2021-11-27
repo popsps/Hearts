@@ -15,14 +15,15 @@ import edu.gmu.server.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.core.parameters.P;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -33,9 +34,10 @@ public class PlayService {
 
   private final Card twoOfClubs = new Card(Suit.CLUBS, Rank.TWO);
   private final Card queenOfSpades = new Card(Suit.SPADES, Rank.QUEEN);
-  private final int TIME_OUT = 30;
+  private final int TIME_OUT = 5000;
   private final ConcurrentMap<String, GameManager> gamePool;
   private final ConcurrentMap<String, User> usersJoining;
+  private final PoolService poolService;
   private final UtilService utilService;
   private final DeckService deckService;
   private final ObjectMapper objectMapper;
@@ -43,10 +45,11 @@ public class PlayService {
   private final UserRepository userRepository;
 
   @Autowired
-  public PlayService(ConcurrentMap<String, GameManager> gamePool, ConcurrentMap<String, User> usersJoining, UtilService utilService,
+  public PlayService(ConcurrentMap<String, GameManager> gamePool, ConcurrentMap<String, User> usersJoining, PoolService poolService, UtilService utilService,
                      DeckService deckService, GameRepository gameRepository, UserRepository userRepository) {
     this.gamePool = gamePool;
     this.usersJoining = usersJoining;
+    this.poolService = poolService;
     this.utilService = utilService;
     this.deckService = deckService;
     this.gameRepository = gameRepository;
@@ -64,35 +67,44 @@ public class PlayService {
     this.updateLastAccessTime(gameManager);
     this.playCard(username, card, gameManager);
     this.resolveGame(username, gameManager);
-    if (gameManager.getCardsRemaining() == 0) {
-      this.startNewRoundOrFinalize(gameManager);
-    }
     return this.getGameDto(username, gameManager);
   }
 
 
+  /**
+   * run this function after all players played their cards
+   *
+   * @param username
+   * @param gameManager
+   */
   private void resolveGame(String username, GameManager gameManager) {
     Player currentPlayer = this.getPlayer(username, gameManager);
     Map<String, Card> board = gameManager.getBoard();
     // if everyone in the game played their card
     if (board.size() == gameManager.getGAME_SIZE()) {
+      currentPlayer.setTurn(false);
       // calculate points and resolve who get the points
-      Suit leadingSuit = gameManager.getLeadingSuit();
-      Map.Entry<String, Card> maxPlayerEntry = board.entrySet().stream()
-        .filter(entry -> entry.getValue().getSuit().equals(leadingSuit))
-        .max((c1, c2) -> c1.getValue().getRank().getValue() - c2.getValue().getRank().getValue())
-        .get();
-      long heartPoints = board.values().stream().filter(card -> card.getSuit().equals(Suit.HEARTS)).count();
-      if (heartPoints > 0)
-        gameManager.setHeartBroken(true);
-      long queenPoints = board.values().stream().filter(card -> card.equals(this.queenOfSpades)).count() * 13;
-      int points = (int) (heartPoints + queenPoints);
-      Player maxPlayer = this.getPlayer(maxPlayerEntry.getKey(), gameManager);
-      maxPlayer.setPointsTaken(maxPlayer.getPointsTaken() + points);
-      maxPlayer.setLastTrickTaken(true);
-      gameManager.setLeadingSuit(null);
-      this.passTurn(currentPlayer, maxPlayer, gameManager);
-      this.clearBoard(gameManager);
+      // resolve game after delay
+      CompletableFuture.runAsync(() -> {
+        log.info("Resolving this round scores");
+        Suit leadingSuit = gameManager.getLeadingSuit();
+        Map.Entry<String, Card> maxPlayerEntry = board.entrySet().stream()
+          .filter(entry -> entry.getValue().getSuit().equals(leadingSuit))
+          .max((c1, c2) -> c1.getValue().getRank().getValue() - c2.getValue().getRank().getValue())
+          .get();
+        long heartPoints = board.values().stream().filter(card -> card.getSuit().equals(Suit.HEARTS)).count();
+        if (heartPoints > 0)
+          gameManager.setHeartBroken(true);
+        long queenPoints = board.values().stream().filter(card -> card.equals(this.queenOfSpades)).count() * 13;
+        int points = (int) (heartPoints + queenPoints);
+        Player maxPlayer = this.getPlayer(maxPlayerEntry.getKey(), gameManager);
+        maxPlayer.setPointsTaken(maxPlayer.getPointsTaken() + points);
+        maxPlayer.setLastTrickTaken(true);
+        gameManager.setLeadingSuit(null);
+        this.passTurn(currentPlayer, maxPlayer, gameManager);
+        this.clearBoard(gameManager);
+        // code removed
+      }, CompletableFuture.delayedExecutor(4, TimeUnit.SECONDS));
     } else {
       this.determineNextPlayer(currentPlayer, gameManager);
     }
@@ -107,6 +119,15 @@ public class PlayService {
     this.passTurn(currentPlayer, nextPlayer, gameManager);
   }
 
+  /**
+   * pass the turn to the next player.
+   * determine allowed cards.
+   * determine when the turn is over
+   *
+   * @param currentPlayer
+   * @param nextPlayer
+   * @param gameManager
+   */
   private void passTurn(Player currentPlayer, Player nextPlayer, GameManager gameManager) {
     currentPlayer.setTurn(false);
     currentPlayer.setTurnExpireAt(null);
@@ -115,6 +136,7 @@ public class PlayService {
     this.setAllowedCards(nextPlayer, gameManager);
     LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
     nextPlayer.setTurnExpireAt(now.plusSeconds(this.TIME_OUT));
+    gameManager.setTimer(this.TIME_OUT);
   }
 
   private void passTurn(Player player, GameManager gameManager) {
@@ -122,6 +144,7 @@ public class PlayService {
     this.setAllowedCards(player, gameManager);
     LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
     player.setTurnExpireAt(now.plusSeconds(this.TIME_OUT));
+    gameManager.setTimer(this.TIME_OUT);
   }
 
   private void clearBoard(GameManager gameManager) {
@@ -134,6 +157,7 @@ public class PlayService {
     // play the card add necessary bookkeeping
     Player player = getPlayer(username, gameManager);
     player.getCards().remove(card);
+    player.setNumberOfRemainingCards(player.getNumberOfRemainingCards() - 1);
     this.clearAllowedCards(player);
     if (gameManager.getBoard().isEmpty())
       gameManager.setLeadingSuit(card.getSuit());
@@ -158,14 +182,28 @@ public class PlayService {
           // if one of player has missed their turn
           this.handleMissedTurns(gameManager);
           // if the round is over
-          if (gameManager.getCardsRemaining() == 0) {
+          if (gameManager.getCardsRemaining() == 0 && gameManager.getBoard().isEmpty()) {
             this.startNewRoundOrFinalize(gameManager);
           }
+          this.calculateTimer(gameManager);
           return this.getGameDto(username, gameManager);
         }
       } else { // if user is not in game and not in a joining pool
         throw new HeartsGameNotExistException("The requested Game does not exist or the user's session is over");
       }
+    }
+  }
+
+  private void calculateTimer(GameManager gameManager) {
+    Optional<Player> activePlayer = gameManager.getPlayers().stream()
+      .filter(player -> player.isTurn())
+      .findFirst();
+    if (activePlayer.isPresent()) {
+      LocalDateTime tea = activePlayer.get().getTurnExpireAt();
+      LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+      int diff = (int) ChronoUnit.SECONDS.between(now, tea);
+      log.info("Timer {}", diff);
+      gameManager.setTimer(diff);
     }
   }
 
@@ -179,6 +217,7 @@ public class PlayService {
         synchronized (gameManager) {
           gameManager.log(String.format("Player %s got disconnected", activePlayer.getNickname()));
           log.error("Player {} is disconnected. finalizing the game...", activePlayer.getUsername());
+          gameManager.setAPlayerLeftTheGame(true);
           activePlayer.setPointsTakenOverall(126);
           this.resolvePlacement(gameManager);
           this.finalizeGame(gameManager);
@@ -283,6 +322,7 @@ public class PlayService {
     gameDto.setCardsRemaining(gameManager.getCardsRemaining());
     gameDto.setBoard(gameManager.getBoard());
     gameDto.setTimer(gameManager.getTimer());
+    gameDto.setAPlayerLeftTheGame(gameManager.isAPlayerLeftTheGame());
     return gameDto;
   }
 
@@ -329,6 +369,8 @@ public class PlayService {
       LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
       gameManager.setSessionEnded(now);
       gameManager.setStatus(Status.ENDED);
+      gameManager.getPlayers()
+        .forEach(player -> this.poolService.disconnect(player.getUsername()));
     }
   }
 

@@ -16,6 +16,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +37,7 @@ public class GameService {
   private final ApplicationEventPublisher applicationEventPublisher;
   private final UtilService utilService;
   private final PlayService playService;
+  private final PoolService poolService;
   private final ConcurrentMap<String, GameManager> gamePool;
   private final ConcurrentMap<String, User> usersJoining;
 
@@ -43,12 +45,14 @@ public class GameService {
   @Autowired
   public GameService(GameRepository gameRepository, UserRepository userRepository, PlayService playService,
                      ApplicationEventPublisher applicationEventPublisher, UtilService utilService,
-                     ConcurrentMap<String, GameManager> gamePool, ConcurrentMap<String, User> usersJoining) {
+                     PoolService poolService, ConcurrentMap<String, GameManager> gamePool,
+                     ConcurrentMap<String, User> usersJoining) {
     this.gameRepository = gameRepository;
     this.userRepository = userRepository;
     this.applicationEventPublisher = applicationEventPublisher;
     this.utilService = utilService;
     this.playService = playService;
+    this.poolService = poolService;
     this.gamePool = gamePool;
     this.usersJoining = usersJoining;
   }
@@ -58,6 +62,12 @@ public class GameService {
   public Page<Game> getAllGames(int page, int limit, Map<String, String> filters) {
     Pageable pageable = PageRequest.of(page, limit);
     return this.gameRepository.findAll(pageable);
+  }
+
+  @Transactional
+  public List<Game> getAllGames() {
+    Sort sort = Sort.by("id").descending();
+    return this.gameRepository.findAll(sort);
   }
 
   public Optional<GameDto> getJoinStatus(UserDetails principal)
@@ -75,29 +85,26 @@ public class GameService {
   /**
    * A player can join a game.
    *
-   * @param principal
+   * @param currentUser
    * @return
    * @throws JsonProcessingException
    */
   @Transactional
-  public boolean joinNewGame(UserDetails principal)
+  public UserStatus joinNewGame(UserDetails currentUser)
     throws JsonProcessingException, HeartsPlayerInGameException,
     InterruptedException, ExecutionException, TimeoutException {
-    log.info("Player {} attempts to join a new game", principal.getUsername());
-    Optional<User> user = this.userRepository.findByUsername(principal.getUsername());
-    User _user = user.orElseThrow(() -> new HeartsResourceNotFoundException("User not found"));
-    if (this.gamePool.containsKey(_user.getUsername()))
-      throw new HeartsPlayerInGameException(String.format("Player %s is already in a game", _user.getUsername()));
-    else {
+    UserStatus userStatus = this.poolService.getUserStatus(currentUser);
+    String username = currentUser.getUsername();
+    log.info("Player {} attempts to join a new game", username);
+    if (!userStatus.isInGame() && !userStatus.isInJoiningPool()) {
+      Optional<User> user = this.userRepository.findByUsername(username);
+      User _user = user.orElseThrow(() -> new HeartsResourceNotFoundException("User not found"));
       this.usersJoining.putIfAbsent(_user.getUsername(), _user);
       log.info("Player {} is added to the pool, looking for a new game to be ready", _user.getUsername());
       CompletableFuture.runAsync(() -> this.applicationEventPublisher.publishEvent(_user.getUsername()));
+      userStatus = this.poolService.getUserStatus(currentUser);
     }
-    if (this.usersJoining.containsKey(_user.getUsername()))
-      return true;
-    else
-      return false;
-
+    return userStatus;
   }
 
   @EventListener
@@ -121,8 +128,7 @@ public class GameService {
             this.usersJoining.remove(_username);
             log.info("User {} registration to Game {} was successful", _username, newGameManager.getId());
             newGameManager.log(
-              String.format("User %s registration to the Game %s was successful",
-                _username, newGameManager.getId()));
+              String.format("User %s registration was successful", _username));
           });
       }
     }

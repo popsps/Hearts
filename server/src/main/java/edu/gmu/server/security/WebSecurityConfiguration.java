@@ -37,7 +37,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
     http.headers().contentSecurityPolicy("script-src 'self'");
     http.headers().httpStrictTransportSecurity().includeSubDomains(true).maxAgeInSeconds(31536000);
     http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-    http.authorizeRequests().antMatchers("/api/auth/**").permitAll();
+    http.authorizeRequests().antMatchers("/api/auth/authenticate", "/api/auth/register").permitAll();
     http.authorizeRequests().anyRequest().authenticated();
     http.addFilterBefore(
       new JwtTokenFilter(userDetailsService, jwtProvider, cookieProvider),

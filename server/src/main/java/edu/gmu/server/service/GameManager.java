@@ -20,7 +20,7 @@ public class GameManager {
   // private final int DECK_SIZE = 52;
   private final int DECK_SIZE = 16;
 //  private final int MAX_SCORE = 100;
-  private final int MAX_SCORE = 10;
+  private final int MAX_SCORE = 20;
   private Long id;
   private Status status;
   private List<String> logs = new ArrayList<>();
@@ -28,7 +28,7 @@ public class GameManager {
   private LocalDateTime sessionEnded;
   private LocalDateTime lastAccessTime;
   private int timer;
-  private AtomicInteger countDawn = new AtomicInteger(GAME_SIZE);
+  private boolean APlayerLeftTheGame = false;
   //  ===================================================================
   private int cardsRemaining = DECK_SIZE;
   private int score = 0;

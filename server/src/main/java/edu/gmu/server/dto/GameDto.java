@@ -28,6 +28,7 @@ public class GameDto {
   private Status status;
   private LocalDateTime sessionCreated;
   private LocalDateTime sessionEnded;
+  private boolean APlayerLeftTheGame = false;
   public GameDto(Long id, Status status) {
     this.setId(id);
     this.setStatus(status);

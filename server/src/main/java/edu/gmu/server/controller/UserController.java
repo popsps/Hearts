@@ -19,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -32,11 +33,15 @@ public class UserController {
     this.userService = userService;
   }
 
+//  @GetMapping
+//  public Page<UserInfo> getAllUsers(@RequestParam(defaultValue = "0", required = false) int page,
+//                                    @RequestParam(defaultValue = "20", required = false) int limit,
+//                                    @RequestParam(required = false) Map<String, String> filters) {
+//    return this.userService.getAllUsers(page, limit, filters);
+//  }
   @GetMapping
-  public Page<UserInfo> getAllUsers(@RequestParam(defaultValue = "0", required = false) int page,
-                                    @RequestParam(defaultValue = "20", required = false) int limit,
-                                    @RequestParam(required = false) Map<String, String> filters) {
-    return this.userService.getAllUsers(page, limit, filters);
+  public List<UserInfo> getAllUsers() {
+    return this.userService.getAllUsers();
   }
 
   @PostMapping("/profile-pic")

@@ -4,11 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import edu.gmu.server.dto.GameDto;
 import edu.gmu.server.exception.*;
 import edu.gmu.server.model.Card;
+import edu.gmu.server.model.UserStatus;
 import edu.gmu.server.service.PlayService;
+import edu.gmu.server.service.PoolService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -22,18 +23,23 @@ import java.util.List;
 @RequestMapping("/api/play")
 public class PlayController {
   private final PlayService playService;
+  private final PoolService poolService;
 
   @Autowired
-  public PlayController(PlayService playService) {
+  public PlayController(PlayService playService, PoolService poolService) {
     this.playService = playService;
+    this.poolService = poolService;
+  }
+
+  @GetMapping("/status")
+  public UserStatus getUserStatus(@AuthenticationPrincipal UserDetails currentUser) {
+    return this.poolService.getUserStatus(currentUser);
   }
 
   @GetMapping("/heartbeat")
   public GameDto heartbeat(@AuthenticationPrincipal UserDetails currentUser) {
     try {
       return this.playService.heartbeat(currentUser);
-    } catch (HeartsTimeoutException e) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "A player has disconnected. Game has saved");
     } catch (HeartsGameNotExistException e) {
       log.error(e.toString());
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "You are not in a game");
