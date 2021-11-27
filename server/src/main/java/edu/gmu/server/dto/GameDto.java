@@ -1,10 +1,7 @@
 package edu.gmu.server.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import edu.gmu.server.model.Card;
-import edu.gmu.server.model.Player;
-import edu.gmu.server.model.Status;
-import edu.gmu.server.model.Suit;
+import edu.gmu.server.model.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -25,10 +22,12 @@ public class GameDto {
   private List<PlayerDto> opponents;
   private Map<String, Card> board;
   private Player you;
+  private List<PlayerInfo> resultTable;
   private Status status;
   private LocalDateTime sessionCreated;
   private LocalDateTime sessionEnded;
   private boolean APlayerLeftTheGame = false;
+
   public GameDto(Long id, Status status) {
     this.setId(id);
     this.setStatus(status);

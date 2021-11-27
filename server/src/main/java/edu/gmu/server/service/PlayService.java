@@ -313,10 +313,18 @@ public class PlayService {
     gameDto.setSessionEnded(gameManager.getSessionEnded());
     Player player = this.getPlayer(username, gameManager);
     gameDto.setYou(player);
-    List<PlayerDto> opponents = gameManager.getPlayers().stream()
+    List<PlayerDto> opponents = gameManager.getPlayers()
+      .stream()
       .filter(pl -> !pl.getUsername().equals(username))
-      .map(pl -> new PlayerDto(pl)).collect(Collectors.toList());
+      .map(pl -> new PlayerDto(pl))
+      .collect(Collectors.toList());
     gameDto.setOpponents(opponents);
+    List<PlayerInfo> resultTable = gameManager.getPlayers()
+      .stream()
+      .sorted((p1, p2) -> p1.getPointsTakenOverall() - p2.getPointsTakenOverall())
+      .map(pl -> new PlayerInfo(pl))
+      .collect(Collectors.toList());
+    gameDto.setResultTable(resultTable);
     gameDto.setHeartBroken(gameManager.isHeartBroken());
     gameDto.setLeadingSuit(gameManager.getLeadingSuit());
     gameDto.setCardsRemaining(gameManager.getCardsRemaining());
@@ -369,6 +377,7 @@ public class PlayService {
       LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
       gameManager.setSessionEnded(now);
       gameManager.setStatus(Status.ENDED);
+      // TODO: 11/27/2021 disconnect after delay
       gameManager.getPlayers()
         .forEach(player -> this.poolService.disconnect(player.getUsername()));
     }
