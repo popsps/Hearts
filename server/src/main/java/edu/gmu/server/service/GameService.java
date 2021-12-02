@@ -30,7 +30,9 @@ import java.util.concurrent.*;
 public class GameService {
 
   private Long gameId = 0L;
-  private final int GAME_MAX_SIZE = 2;
+  // TODO: 11/27/2021 4 player 
+  private final int GAME_MAX_SIZE = 4;
+//  private final int GAME_MAX_SIZE = 2;
 
   private final GameRepository gameRepository;
   private final UserRepository userRepository;

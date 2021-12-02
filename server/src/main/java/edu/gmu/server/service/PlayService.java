@@ -34,7 +34,7 @@ public class PlayService {
 
   private final Card twoOfClubs = new Card(Suit.CLUBS, Rank.TWO);
   private final Card queenOfSpades = new Card(Suit.SPADES, Rank.QUEEN);
-  private final int TIME_OUT = 5000;
+  private final int TIME_OUT = 60000;
   private final ConcurrentMap<String, GameManager> gamePool;
   private final ConcurrentMap<String, User> usersJoining;
   private final PoolService poolService;
@@ -60,14 +60,18 @@ public class PlayService {
   public GameDto play(UserDetails currentUser, Card card) throws JsonProcessingException {
     String username = currentUser.getUsername();
     GameManager gameManager = this.gamePool.get(username);
-    this.assertUserInGame(username, gameManager);
-    this.assertUserTurn(username, gameManager);
-    this.assertUserOnTime(username, gameManager);
-    this.assertCardPlayedAllowed(username, card, gameManager);
-    this.updateLastAccessTime(gameManager);
-    this.playCard(username, card, gameManager);
-    this.resolveGame(username, gameManager);
-    return this.getGameDto(username, gameManager);
+    if (gameManager != null && !gameManager.isPassTheTrash()) {
+      this.assertUserInGame(username, gameManager);
+      this.assertUserTurn(username, gameManager);
+      this.assertUserOnTime(username, gameManager);
+      this.assertCardPlayedAllowed(username, card, gameManager);
+      this.updateLastAccessTime(gameManager);
+      this.playCard(username, card, gameManager);
+      this.resolveGame(username, gameManager);
+      return this.getGameDto(username, gameManager);
+    } else {
+      throw new HeartsPlayerNotInGameException("Invalid request");
+    }
   }
 
 
@@ -119,6 +123,20 @@ public class PlayService {
     this.passTurn(currentPlayer, nextPlayer, gameManager);
   }
 
+  private List<PlayerDto> listOpponents(String username, GameManager gameManager) {
+    Player currentPlayer = this.getPlayer(username, gameManager);
+    int currentPlayerIndex = gameManager.getPlayers().indexOf(currentPlayer);
+    List<PlayerDto> opponents = new ArrayList<>(4);
+    List<Player> players = gameManager.getPlayers();
+    for (int i = currentPlayerIndex + 1; i < players.size(); i++) {
+      opponents.add(new PlayerDto(players.get(i)));
+    }
+    for (int i = 0; i < currentPlayerIndex; i++) {
+      opponents.add(new PlayerDto(players.get(i)));
+    }
+    return opponents;
+  }
+
   /**
    * pass the turn to the next player.
    * determine allowed cards.
@@ -155,7 +173,7 @@ public class PlayService {
     log.info("Player {} plays {}", username, card);
     gameManager.log(String.format("Player %s plays %s", username, card));
     // play the card add necessary bookkeeping
-    Player player = getPlayer(username, gameManager);
+    Player player = this.getPlayer(username, gameManager);
     player.getCards().remove(card);
     player.setNumberOfRemainingCards(player.getNumberOfRemainingCards() - 1);
     this.clearAllowedCards(player);
@@ -181,8 +199,10 @@ public class PlayService {
         } else {
           // if one of player has missed their turn
           this.handleMissedTurns(gameManager);
-          // if the round is over
-          if (gameManager.getCardsRemaining() == 0 && gameManager.getBoard().isEmpty()) {
+          // if the round is over but game is still in progress
+          if (!gameManager.getStatus().equals(Status.ENDED) &&
+            gameManager.getCardsRemaining() == 0 &&
+            gameManager.getBoard().isEmpty()) {
             this.startNewRoundOrFinalize(gameManager);
           }
           this.calculateTimer(gameManager);
@@ -207,22 +227,47 @@ public class PlayService {
     }
   }
 
-  private void handleMissedTurns(GameManager gameManager) throws JsonProcessingException {
-    Optional<Player> activePlayerOptional = gameManager
-      .getPlayers().stream().filter(player -> player.isTurn()).findAny();
-    if (activePlayerOptional.isPresent()) {
-      Player activePlayer = activePlayerOptional.get();
-      LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
-      if (now.isAfter(activePlayer.getTurnExpireAt())) {
-        synchronized (gameManager) {
-          gameManager.log(String.format("Player %s got disconnected", activePlayer.getNickname()));
-          log.error("Player {} is disconnected. finalizing the game...", activePlayer.getUsername());
-          gameManager.setAPlayerLeftTheGame(true);
-          activePlayer.setPointsTakenOverall(126);
-          this.resolvePlacement(gameManager);
-          this.finalizeGame(gameManager);
+  public void handleDisconnection(UserDetails currentUser) throws JsonProcessingException {
+    String username = currentUser.getUsername();
+    // if user in game
+    if (this.gamePool.containsKey(username)) {
+      GameManager gameManager = this.gamePool.get(username);
+      if (gameManager != null) {
+        this.updateLastAccessTime(gameManager);
+        Optional<Player> currentPlayerOptional = gameManager
+          .getPlayers()
+          .stream()
+          .filter(p -> p.getUsername().equals(username))
+          .findAny();
+        if (currentPlayerOptional.isPresent()) {
+          Player currentPlayer = currentPlayerOptional.get();
+          synchronized (gameManager) {
+            gameManager.log(String.format("Player %s left the game", currentPlayer.getNickname()));
+            gameManager.setAPlayerLeftTheGame(true);
+            currentPlayer.setPointsTakenOverall(126);
+            this.resolvePlacement(gameManager);
+            this.finalizeGame(gameManager);
+          }
         }
       }
+    }
+  }
+
+  private void handleMissedTurns(GameManager gameManager) throws JsonProcessingException {
+    synchronized (gameManager) {
+      LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+      gameManager
+        .getPlayers()
+        .stream()
+        .filter(player -> player.isTurn() && now.isAfter(player.getTurnExpireAt()))
+        .forEach(player -> {
+          gameManager.log(String.format("Player %s got disconnected", player.getNickname()));
+          log.error("Player {} is disconnected. finalizing the game...", player.getUsername());
+          gameManager.setAPlayerLeftTheGame(true);
+          player.setPointsTakenOverall(126);
+        });
+      this.resolvePlacement(gameManager);
+      this.finalizeGame(gameManager);
     }
   }
 
@@ -232,15 +277,16 @@ public class PlayService {
     log.info("Player {} initializing new game {}", username, gameManager.getId());
     gameManager.log(String.format("Player %s initializing new game %s", username, gameManager.getId()));
     gameManager.setStatus(Status.IN_PROGRESS);
-    gameManager.setTimer(this.TIME_OUT);
     // TODO: 11/14/2021 revert deck back to 4 player size
-    // Deck newDeck = new Deck();
-    Deck newDeck = new Deck(16);
+    Deck newDeck = new Deck();
+//    Deck newDeck = new Deck(16);
     this.deckService.shuffleCards(newDeck);
     this.deckService.dealCards(newDeck, gameManager.getPlayers());
     gameManager.setDeck(newDeck);
     gameManager.setCardsRemaining(gameManager.getDECK_SIZE());
-    this.initDetermineTurn(gameManager);
+    this.initPassTheTrash(gameManager);
+
+    gameManager.setTimer(this.TIME_OUT);
     return this.getGameDto(username, gameManager);
   }
 
@@ -313,11 +359,7 @@ public class PlayService {
     gameDto.setSessionEnded(gameManager.getSessionEnded());
     Player player = this.getPlayer(username, gameManager);
     gameDto.setYou(player);
-    List<PlayerDto> opponents = gameManager.getPlayers()
-      .stream()
-      .filter(pl -> !pl.getUsername().equals(username))
-      .map(pl -> new PlayerDto(pl))
-      .collect(Collectors.toList());
+    List<PlayerDto> opponents = this.listOpponents(username, gameManager);
     gameDto.setOpponents(opponents);
     List<PlayerInfo> resultTable = gameManager.getPlayers()
       .stream()
@@ -331,6 +373,7 @@ public class PlayService {
     gameDto.setBoard(gameManager.getBoard());
     gameDto.setTimer(gameManager.getTimer());
     gameDto.setAPlayerLeftTheGame(gameManager.isAPlayerLeftTheGame());
+    gameDto.setPassTheTrash(gameManager.isPassTheTrash());
     return gameDto;
   }
 
@@ -347,7 +390,7 @@ public class PlayService {
   private void startNewRoundOrFinalize(GameManager gameManager) throws JsonProcessingException {
     synchronized (gameManager) {
       if (gameManager.getCardsRemaining() == 0) {
-        log.info("New round is loaded");
+        log.info("Finishing up with this round...");
         gameManager.getPlayers().forEach(player -> {
           int points = player.getPointsTaken();
           int pointsOverall = player.getPointsTakenOverall();
@@ -360,10 +403,13 @@ public class PlayService {
         } else {
           gameManager.log(String.format("Starting a new round"));
           gameManager.setStatus(Status.IN_PROGRESS);
+          gameManager.setHeartBroken(false);
+          gameManager.setLeadingSuit(null);
+          // TODO: 11/29/2021 pass the trash housekeeping
           this.deckService.shuffleCards(gameManager.getDeck());
           this.deckService.dealCards(gameManager.getDeck(), gameManager.getPlayers());
           gameManager.setCardsRemaining(gameManager.getDECK_SIZE());
-          this.initDetermineTurn(gameManager);
+          this.initPassTheTrash(gameManager);
         }
       }
     }
@@ -377,9 +423,11 @@ public class PlayService {
       LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
       gameManager.setSessionEnded(now);
       gameManager.setStatus(Status.ENDED);
-      // TODO: 11/27/2021 disconnect after delay
-      gameManager.getPlayers()
-        .forEach(player -> this.poolService.disconnect(player.getUsername()));
+      CompletableFuture.runAsync(() -> {
+        gameManager.getPlayers()
+          .forEach(player -> this.poolService.disconnect(player.getUsername()));
+      }, CompletableFuture.delayedExecutor(2, TimeUnit.SECONDS));
+
     }
   }
 
@@ -436,17 +484,49 @@ public class PlayService {
     }
   }
 
+  private boolean isCardPlayedAllowed(String username, Card card, GameManager gameManager) {
+    Player player = this.getPlayer(username, gameManager);
+    List<Card> allowedCards = player.getAllowedCards();
+    List<Card> cards = player.getCards();
+    if (player == null || allowedCards == null || cards == null)
+      return false;
+    if (!allowedCards.contains(card) || !cards.contains(card)) {
+      return false;
+    } else
+      return true;
+  }
+
+  private boolean isTrashCardsPlayedAllowed(String username, List<Card> cards, GameManager gameManager) {
+    Player player = this.getPlayer(username, gameManager);
+    List<Card> allowedCards = player.getAllowedCards();
+    return cards.size() == 3 && allowedCards.containsAll(cards);
+  }
+
+
   private void resolvePlacement(GameManager gameManager) {
     List<Player> playerSorted = gameManager.getPlayers().stream()
       .sorted((p1, p2) -> p1.getPointsTakenOverall() - p2.getPointsTakenOverall())
       .collect(Collectors.toList());
+    Player prevPlayer = null;
     for (int i = 0; i < playerSorted.size(); i++) {
       final int index = i;
       Player player = gameManager.getPlayers().stream()
         .filter(p -> p.getId().equals(playerSorted.get(index).getId()))
         .findFirst()
         .orElseThrow(() -> new HeartsPlayerNotInGameException("Player not found"));
-      player.setPlacement(i + 1);
+      if (prevPlayer != null) {
+        int score = player.getPointsTakenOverall();
+        int prevScore = prevPlayer.getPointsTakenOverall();
+        int prevPlacement = prevPlayer.getPlacement();
+        if ((score != prevScore)) {
+          player.setPlacement(i + 1);
+        } else {
+          player.setPlacement(prevPlacement);
+        }
+      } else {
+        player.setPlacement(i + 1);
+        prevPlayer = player;
+      }
     }
   }
 
@@ -457,6 +537,8 @@ public class PlayService {
     gameManager.getPlayers().stream().forEach(player -> {
       User user = this.userRepository.findByUsername(player.getUsername())
         .orElseThrow(() -> new HeartsUserNotFoundException("Cannot find user in the database"));
+      gameManager.log(String.format("Player %s is placed at %d", player.getNickname(), player.getPlacement()));
+      gameManager.log(String.format("Player %s got %d points", player.getNickname(), player.getPointsTakenOverall()));
       Stats stats = user.getStats();
       int win = (player.getPlacement() == 1) ? 1 : 0;
       int lost = (player.getPlacement() > 1) ? 1 : 0;
@@ -468,7 +550,7 @@ public class PlayService {
       stats.setLost(stats.getLost() + lost);
       int numOfGames = stats.getWin() + stats.getLost();
       double averagePlacement =
-        (player.getPlacement() + stats.getAveragePlacement()) / numOfGames;
+        (player.getPlacement() + (stats.getAveragePlacement() * (numOfGames - 1))) / numOfGames;
       double pointsTakenPerGame =
         (player.getPointsTakenOverall() + stats.getPointsTakenPerGame() * (numOfGames - 1)) / numOfGames;
       stats.setAveragePlacement(averagePlacement);
@@ -519,5 +601,72 @@ public class PlayService {
         }
       }
     }
+  }
+
+  /**
+   * function used to pass the trash
+   * cards is a list of 3 cards
+   *
+   * @param currentUser
+   * @param cards
+   * @return
+   */
+  public GameDto passTheTrash(UserDetails currentUser, List<Card> cards) {
+    String username = currentUser.getUsername();
+    GameManager gameManager = this.gamePool.get(username);
+    if (gameManager != null && gameManager.isPassTheTrash()) {
+      this.updateLastAccessTime(gameManager);
+      this.assertUserInGame(username, gameManager);
+      this.assertUserTurn(username, gameManager);
+      this.assertUserOnTime(username, gameManager);
+      if (this.isTrashCardsPlayedAllowed(username, cards, gameManager)) {
+        gameManager.getTrash().putIfAbsent(username, cards);
+        Player player = this.getPlayer(username, gameManager);
+        player.getCards().removeAll(cards);
+        player.setTurn(false);
+        synchronized (gameManager) {
+          gameManager.setPassTheTrashCounter(gameManager.getPassTheTrashCounter() + 1);
+          // if everyone passed the trash distribute the trashed cards
+          if (gameManager.getPassTheTrashCounter() == gameManager.getGAME_SIZE()) {
+            // pass the trash left scheme
+            for (int i = 0; i < gameManager.getPlayers().size(); i++) {
+              Player currentPlayer = gameManager.getPlayers().get(i);
+              Player nextPlayer = (i < gameManager.getGAME_SIZE() - 1)
+                ? gameManager.getPlayers().get(i + 1)
+                : gameManager.getPlayers().get(0);
+              List<Card> trashedCards = gameManager.getTrash().get(currentPlayer.getUsername());
+              nextPlayer.getCards().addAll(trashedCards);
+              nextPlayer.getCards().sort((c1, c2) -> {
+                if (!c1.getSuit().equals(c2.getSuit()))
+                  return c1.getSuit().compareTo(c2.getSuit());
+                else
+                  return c1.getRank().compareTo(c2.getRank());
+              });
+            }
+            gameManager.setPassTheTrash(false);
+            this.initDetermineTurn(gameManager);
+          }
+          return this.getGameDto(username, gameManager);
+        }
+      } else {
+        throw new HeartsCardNotAllowedException("Invalid cards");
+      }
+    } else {
+      throw new HeartsPlayerNotInGameException("Player is not in game");
+    }
+  }
+
+  private void initPassTheTrash(GameManager gameManager) {
+    gameManager.setPassTheTrash(true);
+    gameManager.setPassTheTrashCounter(0);
+    gameManager.getTrash().clear();
+    gameManager.setTimer(this.TIME_OUT);
+    LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+    gameManager.getPlayers().stream().forEach(player -> {
+      player.setTurn(true);
+      List<Card> allowedCards = player.getCards().stream().collect(Collectors.toList());
+      player.setAllowedCards(allowedCards);
+      player.setTurnExpireAt(now.plusSeconds(this.TIME_OUT));
+    });
   }
 }

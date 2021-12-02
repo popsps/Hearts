@@ -1,0 +1,8 @@
+<div>
+  <app-navigation></app-navigation>
+  <div style="margin-top: 50px;">
+    <router-outlet></router-outlet>
+  </div>
+  <app-error-dialog *ngIf="userService.error" [render]="userService.error"
+                    [message]="userService.errorMessage"></app-error-dialog>
+</div>

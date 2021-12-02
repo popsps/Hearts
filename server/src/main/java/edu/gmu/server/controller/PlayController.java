@@ -67,6 +67,6 @@ public class PlayController {
   @PostMapping("/pass-trash")
   public GameDto passTheTrash(@AuthenticationPrincipal UserDetails userDetails,
                               @RequestBody @Valid List<Card> cards) {
-    return null;
+    return this.playService.passTheTrash(userDetails, cards);
   }
 }

@@ -1,0 +1,33 @@
+<div style="display: flex; flex-direction: column; align-items: center">
+  <mat-card [formGroup]="signupForm" (keydown.enter)="signup()"
+            style="display: flex; flex-direction: column;  max-width: 500px;
+   height: 500px; justify-content: center; margin-top: 150px;
+   width: 50%; padding: 55px; align-items: center">
+    <mat-form-field appearance="fill" style="width: 300px">
+      <mat-label>Username</mat-label>
+      <input matInput required type="text" formControlName="username">
+    </mat-form-field>
+    <mat-form-field appearance="fill" style=" width: 300px">
+      <mat-label>Password</mat-label>
+      <input matInput type="password" required formControlName="password">
+    </mat-form-field>
+    <mat-form-field appearance="fill" style="width: 300px">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" required formControlName="email">
+    </mat-form-field>
+    <mat-form-field appearance="fill" style="width: 300px">
+      <mat-label>Nick name</mat-label>
+      <input matInput required type="text" formControlName="nickname">
+    </mat-form-field>
+    <mat-form-field appearance="fill" style="width: 300px">
+      <mat-label>First name</mat-label>
+      <input matInput type="text" formControlName="firstname">
+    </mat-form-field>
+    <mat-form-field appearance="fill" style="width: 300px">
+      <mat-label>Last name</mat-label>
+      <input matInput type="text" formControlName="lastname">
+    </mat-form-field>
+    <button mat-raised-button (click)="signup()" color="primary" style="width: 300px">Sign Up</button>
+    <a class="light-link" style="margin-top: 10px" routerLink="/auth/login">Already have an account Login</a>
+  </mat-card>
+</div>

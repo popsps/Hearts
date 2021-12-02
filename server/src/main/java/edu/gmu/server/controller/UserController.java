@@ -33,15 +33,24 @@ public class UserController {
     this.userService = userService;
   }
 
-//  @GetMapping
+  //  @GetMapping
 //  public Page<UserInfo> getAllUsers(@RequestParam(defaultValue = "0", required = false) int page,
 //                                    @RequestParam(defaultValue = "20", required = false) int limit,
 //                                    @RequestParam(required = false) Map<String, String> filters) {
 //    return this.userService.getAllUsers(page, limit, filters);
 //  }
+
   @GetMapping
   public List<UserInfo> getAllUsers() {
     return this.userService.getAllUsers();
+  }
+
+  @GetMapping("/user-info")
+  public User getUserInfo(@AuthenticationPrincipal UserDetails currentUser) {
+    String username = currentUser.getUsername();
+    return this.userService.getUserInfo(username)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+        "Not enough privileges to access this resource"));
   }
 
   @PostMapping("/profile-pic")
@@ -60,13 +69,18 @@ public class UserController {
   @GetMapping(value = "/profile-pic", produces = MediaType.IMAGE_JPEG_VALUE)
   public byte[] getProfilePicture(@AuthenticationPrincipal UserDetails principal,
                                   HttpServletResponse response) {
-    try {
-      response.setHeader("Content-disposition", "attachment; filename=profile.jpeg");
-      return this.userService.getProfilePicture(principal);
-    } catch (HeartsBadCredentialsException e) {
-      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bad Credentials");
-    } catch (HeartsResourceNotFoundException e) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "A Profile picture not found");
-    }
+    response.setHeader("Content-disposition", "attachment; filename=profile.jpeg");
+    String username = principal.getUsername();
+    return this.userService.getProfilePicture(username)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NO_CONTENT,
+        "A Profile picture not found"));
+  }
+
+  @GetMapping(value = "/profile-pic/{username}", produces = MediaType.IMAGE_JPEG_VALUE)
+  public byte[] getProfilePictureByUsername(HttpServletResponse response, @PathVariable String username) {
+    response.setHeader("Content-disposition", "attachment; filename=profile.jpeg");
+    return this.userService.getProfilePicture(username)
+      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NO_CONTENT,
+        "A Profile picture not found"));
   }
 }

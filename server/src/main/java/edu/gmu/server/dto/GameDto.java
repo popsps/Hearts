@@ -15,6 +15,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GameDto {
   private Long id;
+  private boolean passTheTrash;
   private Suit leadingSuit;
   private boolean heartBroken;
   private int cardsRemaining;

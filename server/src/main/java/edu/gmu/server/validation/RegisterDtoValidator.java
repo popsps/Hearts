@@ -32,28 +32,24 @@ public class RegisterDtoValidator implements ConstraintValidator<ValidRegisterDt
       log.error("Input validation; Invalid input characters for password field");
       constraintValidatorContext.buildConstraintViolationWithTemplate("Invalid input characters for password field")
         .addConstraintViolation();
-
       return false;
     }
     if (!password.matches("^.*[a-z].*$")) {
       log.error("Input validation; Password missing lowercase letter");
       constraintValidatorContext.buildConstraintViolationWithTemplate("Password missing lowercase letter")
         .addConstraintViolation();
-
       return false;
     }
     if (!password.matches("^.*[A-Z].*$")) {
       log.error("Input validation; Password missing uppercase letter");
       constraintValidatorContext.buildConstraintViolationWithTemplate("Password missing uppercase letter")
         .addConstraintViolation();
-
       return false;
     }
     if (!password.matches("^.*\\d.*$")) {
       log.error("Input validation; Password missing digit");
       constraintValidatorContext.buildConstraintViolationWithTemplate("Password missing digit")
         .addConstraintViolation();
-
       return false;
     }
     if (!password.matches("^.*[@$!%*#?&].*$")) {

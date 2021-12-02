@@ -1,0 +1,19 @@
+<div [class]="(turn) ? 'player-info active':'player-info inactive'">
+  <div style="position: relative; transform: scale(0.75);">
+    <img style="position: absolute; top: 50px; left: -20px" *ngIf="profilePicture"
+         class="avatar-sm" [src]="profilePicture" [alt]="username">
+    <!--    <div id="heart" [matBadge]="pointsTakenOverall" matBadgeSize="large" matBadgeColor="accent"></div>-->
+    <div style="display: flex; position: absolute;
+    background-color: cadetblue; border-radius: 100px; padding: 7px; border: 3px darkgoldenrod solid;
+     right: 25px; top: -2px; justify-content: end; align-items: flex-start;
+    z-index: 5; font-size: 2rem;">{{pointsTakenOverall}}</div>
+    <mat-icon>favorites</mat-icon>
+    <div style="display: flex; position: absolute;
+    left: 0; right: 0; top: -7.5px; bottom: 0; justify-content: center; align-items: center;
+    z-index: 5; font-size: 2rem;">{{pointsTaken}}</div>
+  </div>
+  <div style="font-size: 1.15rem; max-width: 100px; margin: 7px auto;">
+    {{name}}
+  </div>
+
+</div>

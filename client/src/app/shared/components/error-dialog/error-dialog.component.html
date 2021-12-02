@@ -1,0 +1,11 @@
+<ng-template #errorBar>
+  <div class="hearts-error">
+    <div style="align-self: center; color: #eeeeee">{{message}}</div>
+    <div style="margin-left: auto">
+      <button mat-mini-fab color="warn" style="transform: scale(.65)" (click)="dismiss()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+</ng-template>

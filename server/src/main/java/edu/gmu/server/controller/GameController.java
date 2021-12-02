@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import edu.gmu.server.entity.Game;
 import edu.gmu.server.model.UserStatus;
 import edu.gmu.server.service.GameService;
+import edu.gmu.server.service.PlayService;
 import edu.gmu.server.service.PoolService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,11 +25,13 @@ import java.util.concurrent.TimeoutException;
 public class GameController {
   private final GameService gameService;
   private final PoolService poolService;
+  private final PlayService playService;
 
   @Autowired
-  public GameController(GameService gameService, PoolService poolService) {
+  public GameController(GameService gameService, PoolService poolService, PlayService playService) {
     this.gameService = gameService;
     this.poolService = poolService;
+    this.playService = playService;
   }
 
   //  @GetMapping
@@ -66,7 +69,12 @@ public class GameController {
 
   @PostMapping("/disconnect")
   public UserStatus disconnect(@AuthenticationPrincipal UserDetails currentUser) {
+    try {
+      this.playService.handleDisconnection(currentUser);
+    } catch (JsonProcessingException e) {
+      log.error("{}", e);
+      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong processing your request");
+    }
     return this.poolService.disconnect(currentUser);
   }
-
 }

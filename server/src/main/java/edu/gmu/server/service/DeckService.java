@@ -35,5 +35,13 @@ public class DeckService {
       currentPlayer = playerList.get(i);
     }
     playerList.stream().forEach(player -> player.setNumberOfRemainingCards(player.getCards().size()));
+    playerList.stream().forEach(player -> {
+      player.getCards().sort((c1, c2) -> {
+        if (!c1.getSuit().equals(c2.getSuit()))
+          return c1.getSuit().compareTo(c2.getSuit());
+        else
+          return c1.getRank().compareTo(c2.getRank());
+      });
+    });
   }
 }
