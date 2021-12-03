@@ -323,7 +323,16 @@ public class PlayService {
         .filter(card -> card.getSuit().equals(leadingSuit)).collect(Collectors.toList());
       // if you don't have a card in the same suit
       if (allowedCards.isEmpty()) {
-        allowedCards = cards.stream().collect(Collectors.toList());
+        if (gameManager.isHeartBroken()) {
+          allowedCards = cards.stream().collect(Collectors.toList());
+        } else {
+          allowedCards = cards.stream()
+            .filter(card -> !card.getSuit().equals(Suit.HEARTS))
+            .collect(Collectors.toList());
+          // case Hearts is not broken and there is no other card to play except Hearts
+          if (allowedCards.isEmpty())
+            allowedCards = cards.stream().collect(Collectors.toList());
+        }
       }
     } else if (cards.contains(this.twoOfClubs)) {
       allowedCards.add(this.twoOfClubs);

@@ -40,7 +40,7 @@ services:
 
   hearts-client:
     image: hearts-client
-    build: ./test/client
+    build: ./client
     container_name: hearts-client
     ports:
       - "80:80"
