@@ -16,9 +16,7 @@ Hearts ♥ are worth 1 point each, and the Queen of Spades Q♠ is worth 13 poin
 
 ### Starting the Game
 
-3 cards must be passes to another player. The passing scheme is LEFT Scheme. 
-
-The 2♣ of clubs plays first (lead) every round.
+3 cards must be passes to another player. The passing scheme is LEFT Scheme. The 2♣ of clubs plays first (lead) every round.
 
 ### Gameplay
 
