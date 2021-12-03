@@ -1,0 +1,22 @@
+<div>
+  <div style="display: flex">
+    <div mat-dialog-title>Total Score</div>
+    <div mat-dialog-title style="margin-left: auto">{{data.status.replace('_', ' ')}}</div>
+  </div>
+  <mat-dialog-content class="mat-typography" style="font-size: 1.5rem; padding: 10px">
+    <div *ngFor="let player of data.players; index as i;">
+      <div style="display: flex; margin: 30px;">
+        <div>{{player.nickname}}</div>
+        <div style="margin-left: auto">{{player.pointsTakenOverall}}</div>
+      </div>
+    </div>
+  </mat-dialog-content>
+  <mat-dialog-actions>
+    <button mat-button mat-dialog-close>
+      <mat-icon>close</mat-icon>
+    </button>
+    <button mat-button mat-dialog-close (click)="leaveGame()">
+      Leave game
+    </button>
+  </mat-dialog-actions>
+</div>

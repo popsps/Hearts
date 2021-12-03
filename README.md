@@ -16,10 +16,9 @@ Hearts ♥ are worth 1 point each, and the Queen of Spades Q♠ is worth 13 poin
 
 ### Starting the Game
 
-3 cards must be passes to another player. The passing scheme is LEFT, RIGHT, ACROSS, and NO PASS. This cycle is repeated
-until the end of the game.
+3 cards must be passes to another player. The passing scheme is LEFT Scheme. 
 
-The 2♣ of clubs plays first (lead) every hand.
+The 2♣ of clubs plays first (lead) every round.
 
 ### Gameplay
 
@@ -40,9 +39,4 @@ Whoever took the last trick leads the next one.
 
 You may lead with any card, but you cannot lead with a Heart ♥ until Hearts are broken. Hearts are broken after the
 first Heart ♥ is played.
-
-### Shooting the Moon
-
-If you succeed in collecting all the Heats ♥, and the Queen of Spades ♠, 26 pints will be added to the total of all
-other players in the game, while you will receive 0 point for that hand.  
 

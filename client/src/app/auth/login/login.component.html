@@ -1,0 +1,18 @@
+<div style="display: flex; flex-direction: column; align-items: center">
+  <mat-card [formGroup]="loginForm" (keydown.enter)="login()"
+            style="display: flex; flex-direction: column;  max-width: 500px;
+            max-height: 800px; height: 400px; justify-content: center; margin-top: 150px;
+            width: 50%; padding: 55px; align-items: center">
+    <mat-form-field appearance="fill" style="width: 300px">
+      <mat-label>ID</mat-label>
+      <input matInput formControlName="id" type="text" required>
+    </mat-form-field>
+    <mat-form-field appearance="fill" style=" width: 300px">
+      <mat-label>Password</mat-label>
+      <input matInput formControlName="password" type="password" required>
+    </mat-form-field>
+    <button mat-raised-button color="primary" style="width: 300px" (click)="login()">Login</button>
+    <a class="light-link" style="margin-top: 10px" routerLink="/auth/signup">Don't have an account Sign up</a>
+  </mat-card>
+</div>
+

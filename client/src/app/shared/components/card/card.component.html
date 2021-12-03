@@ -1,0 +1,7 @@
+<!--cdkDrag-->
+
+<button mat-button (click)="selectCard()" [class]="myCard?.selected ? 'card-selected' : ''"
+        [disabled]="interactive && !cardIsAllowed()">
+  <img [src]="'assets/cards/' + type + '.svg'" [alt]="type" height="150px">
+  <div [class]="cardIsAllowed() ? '' : 'card-mask'"></div>
+</button>

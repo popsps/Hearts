@@ -16,22 +16,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 @NoArgsConstructor
 public class GameManager {
   // TODO: 11/14/2021 revert numbers back to 4 player game
-  private final int GAME_SIZE = 2;
-  // private final int DECK_SIZE = 52;
-  private final int DECK_SIZE = 16;
+  private final int GAME_SIZE = 4;
+  //  private final int GAME_SIZE = 2;
+  private final int DECK_SIZE = 52;
+  //  private final int DECK_SIZE = 16;
 //  private final int MAX_SCORE = 100;
-  private final int MAX_SCORE = 10;
+  private final int MAX_SCORE = 20;
   private Long id;
   private Status status;
   private List<String> logs = new ArrayList<>();
   private LocalDateTime sessionCreated;
   private LocalDateTime sessionEnded;
   private LocalDateTime lastAccessTime;
-  private AtomicInteger countDawn = new AtomicInteger(GAME_SIZE);
+  private int timer;
+  private boolean APlayerLeftTheGame = false;
   //  ===================================================================
   private int cardsRemaining = DECK_SIZE;
   private int score = 0;
   private boolean heartBroken;
+  private boolean passTheTrash;
+  private int passTheTrashCounter;
+  private Map<String, List<Card>> trash = new HashMap<>(4);
   private Deck deck;
   private Suit leadingSuit;
   private List<Player> players = new ArrayList<>(4);

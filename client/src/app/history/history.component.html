@@ -1,0 +1,28 @@
+<div class="container">
+  <mat-accordion *ngIf="!userService.loading && !isError">
+    <mat-expansion-panel *ngFor="let game of games; index as i;">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <span>Game &nbsp;</span>
+          <span style="color: beige">#{{game.id}}</span>
+        </mat-panel-title>
+        <mat-panel-description>
+          <div style="margin: 5px;">Participants:</div>
+          <div style="margin: 5px;">[</div>
+          <div style="margin: 5px;" *ngFor="let user of game.users; index as i;">
+            <span style="color: beige">{{user.username}}</span>
+            <span *ngIf="i < game.users.length - 1">,</span>
+          </div>
+          <div style="margin: 5px;">]</div>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <div *ngFor="let log of game.logs">
+        {{log}}
+      </div>
+    </mat-expansion-panel>
+  </mat-accordion>
+  <div style="justify-content: center; display: flex; height: 60vh; align-items: center" *ngIf="isLoading">
+    <app-loading-spinner></app-loading-spinner>
+  </div>
+</div>
+

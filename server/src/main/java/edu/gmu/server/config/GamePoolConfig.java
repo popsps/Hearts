@@ -14,18 +14,17 @@ import java.util.concurrent.ConcurrentMap;
 public class GamePoolConfig {
 
   // Map of <username, GameId> of users in currently in Game
-  private final ConcurrentMap<String, GameManager> usersInGame = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, GameManager> gamePool = new ConcurrentHashMap<>();
   // Pool of users looking for a new game
   private final ConcurrentMap<String, User> usersJoining = new ConcurrentHashMap<>();
 
   @Bean
   ConcurrentMap<String, GameManager> getGamePool() {
-    return this.usersInGame;
+    return this.gamePool;
   }
 
   @Bean
   ConcurrentMap<String, User> getUsersJoining() {
     return this.usersJoining;
   }
-
 }

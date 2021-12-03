@@ -1,0 +1,36 @@
+<div class="container" style="text-align: center; margin-top: 100px;">
+  <div>
+
+  </div>
+  <mat-card style="margin: 10px auto; max-width: 300px">
+    <mat-card-header>
+      <input hidden #fileInput type="file" (change)="updateProfilePicture($event)">
+      <div mat-card-avatar style="cursor: pointer;" (click)="fileInput.click()">
+        <img mat-card-avatar *ngIf="profilePicture"
+             [src]="profilePicture"
+             [alt]="userService?.user?.username">
+        <mat-icon (click)="updateProfilePicture($event)"
+                  style="display:flex; border-radius: 100px; justify-content: center;
+      align-items: center;
+      background-color: #303030; width: 40px; height: 40px"
+                  *ngIf="!profilePicture" mat-card-avatar>
+          image
+        </mat-icon>
+      </div>
+      <mat-card-title>{{userService.user?.nickname}}</mat-card-title>
+      <mat-card-subtitle>{{userService.user?.email}}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content style="text-align: left; color: beige; margin: 5px;">
+      <div>Win: {{userService.user?.stats?.win}}</div>
+      <div>Lost: {{userService.user?.stats?.lost}}</div>
+      <div>Average Placement: {{userService.user?.stats?.averagePlacement.toFixed(2)}}</div>
+      <div>Points Taken per Game: {{userService.user?.stats?.pointsTakenPerGame.toFixed(2)}}</div>
+    </mat-card-content>
+  </mat-card>
+  <button mat-raised-button color="primary"
+          style="width: 60%; min-width: 300px; font-size: 2.5rem; padding: 50px 100px;"
+          (click)="join()">
+    <span *ngIf="!playService.lookingForGame">Play</span>
+    <mat-spinner *ngIf="playService.lookingForGame" color="accent" style=" margin: auto"></mat-spinner>
+  </button>
+</div>

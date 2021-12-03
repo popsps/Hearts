@@ -1,0 +1,16 @@
+.mat-card {
+  padding          : 0;
+  background-color : transparent;
+  //height : 150px;
+}
+
+.mat-button {
+  padding     : 0;
+  line-height : normal;
+}
+
+.card-selected {
+  //transition: all 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition : all 100ms linear;
+  transform  : translateY(-15px);
+}

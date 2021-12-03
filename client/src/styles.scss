@@ -1,0 +1,213 @@
+/* You can add global styles to this file, and also import other style files */
+$card-height   : 150px;
+$primary-color : #c2185b;
+$warn-color    : #f44336;
+
+html, body { height : 100%; }
+
+body { margin : 0; font-family : Roboto, "Helvetica Neue", sans-serif; }
+
+.light-link {
+  color : #eeeeee;
+}
+
+.hearts-error {
+  display          : flex;
+  flex-direction   : row;
+  background-color : #c2185b;
+}
+
+.game-board-grid {
+  display               : grid;
+  position              : relative;
+  grid-template-columns : 2fr 5fr 2fr;
+  grid-template-rows    :  2fr 5fr  2fr;
+  height                : 1050px;
+  margin                : auto;
+  max-width             : 850px;
+  //background-color      : #303030;
+  background-color      : #424242;
+  box-shadow            : 0 2px 1px -1px #0003, 0 1px 1px #00000024, 0 1px 3px #0000001f;
+}
+
+.board-grid {
+  grid-row              : 2 / span 1;
+  grid-column           : 2 / span 1;
+  display               : grid;
+  grid-template-columns : 2fr 2fr 2fr;
+  grid-template-rows    :  2fr 2fr 2fr;
+  position              : relative;
+}
+
+.card-board-bottom {
+  height      : $card-height;
+  text-align  : center;
+  grid-row    : 3 / span 1;
+  grid-column : 2 / span 1;
+}
+
+.card-board-top {
+  height          : $card-height;
+  display         : flex;
+  justify-content : center;
+  align-self      : center;
+  grid-row        : 1 / span 1;
+  grid-column     : 2 / span 1;
+}
+
+.card-board-right {
+  height          : $card-height;
+  display         : flex;
+  justify-content : center;
+  align-self      : center;
+  grid-row        : 2 / span 1;
+  grid-column     : 3 / span 1;
+}
+
+.card-board-left {
+  height          : $card-height;
+  display         : flex;
+  justify-content : center;
+  align-self      : center;
+  grid-row        : 2 / span 1;
+  grid-column     : 1 / span 1;
+}
+
+
+.player-bottom-wrapper {
+  display         : flex;
+  flex-direction  : column;
+  justify-content : center;
+  //align-self: center;
+  align-items     : center;
+  //background-color : #E6180A;
+  grid-row        : 3 / span 1;
+  grid-column     : 1 / span 3;
+}
+
+.player-bottom {
+  display         : flex;
+  flex-direction  : column;
+  justify-content : center;
+  align-items     : center;
+  //background-color : #E6180A;
+}
+
+.player-top-wrapper {
+  position        : relative;
+  display         : flex;
+  justify-content : center;
+  //align-self: center;
+  align-items     : center;
+  grid-row        : 1 / span 1;
+  grid-column     : 1 / span 3;
+}
+
+.player-top {
+  position        : absolute;
+  display         : flex;
+  max-width       : 500px;
+  justify-content : center;
+  align-items     : center;
+  transform       : scale(-0.65, -0.65);
+  z-index         : 3;
+}
+
+.player-left-wrapper {
+  display         : flex;
+  position        : relative;
+  justify-content : center;
+  align-items     : center;
+  grid-row        : 2 / span 1;
+  grid-column     : 1 / span 1;
+  z-index         : 2;
+}
+
+.player-left {
+  position  : absolute;
+  max-width : 500px;
+  transform : scale(0.65) rotate(90deg);
+  //transform-origin : top left;
+  z-index   : 3;
+}
+
+.player-right-wrapper {
+  position        : relative;
+  display         : flex;
+  justify-content : center;
+  align-items     : center;
+  grid-row        : 2 / span 1;
+  grid-column     : 3 / span 1;
+}
+
+.player-right {
+  position  : absolute;
+  max-width : 500px;
+  transform : scale(0.65) rotate(-90deg);
+  z-index   : 3;
+}
+
+.container {
+  margin    : auto;
+  max-width : 900px;
+  width     : 900px;
+  position  : relative;
+  display   : block;
+}
+
+.card-set {
+  justify-content : center;
+  display         : flex;
+  max-width       : 800px;
+}
+
+.player-green {
+  background-color : #00ff0a;
+  width            : 15px;
+  height           : 15px;
+  border-radius    : 15px;
+  margin           : 2.5px;
+}
+
+.player-red {
+  background-color : $primary-color;
+  width            : 15px;
+  height           : 15px;
+  border-radius    : 15px;
+  margin           : 2.5px;
+}
+
+
+//.hand-bottom {
+//  display          : flex;
+//  flex-direction   : column;
+//  justify-content  : center;
+//  //align-self: center;
+//  background-color : #E6180A;
+//  grid-row         : 3 / span 1;
+//  grid-column      : 1 / span 3;
+//}
+.avatar-sm {
+  position      : relative;
+  display       : block;
+  width         : 75px;
+  height        : auto;
+  border-radius : 200px;
+}
+
+.card-mask {
+  position              : absolute;
+  top                   : 0;
+  right                 : 0;
+  bottom                : 0;
+  left                  : 0;
+  margin-top            : 2px;
+  margin-bottom         : 2px;
+  //width                 : 100%;
+  //height                : 100%;
+  overflow              : hidden;
+  background-attachment : fixed;
+  background-color      : rgba(0, 0, 0, 0.5);
+  //background-color      : rgba(0, 0, 0, 0.5);
+  //opacity          : .6;
+}

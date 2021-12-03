@@ -1,0 +1,7 @@
+<div class="card-set">
+  <app-card *ngFor="let card of _cards; index as i;"
+            [style]="cardStyles[i]"
+            [interactive]="interactive"
+            [card]="card">
+  </app-card>
+</div>

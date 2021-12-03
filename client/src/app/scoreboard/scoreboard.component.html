@@ -1,0 +1,41 @@
+<div class="container" >
+  <table mat-table [dataSource]="users" *ngIf="!isLoading && !isError"
+         options
+         class="mat-elevation-z8" style="width: 100%">
+    <ng-container matColumnDef="username">
+      <th mat-header-cell *matHeaderCellDef>Username</th>
+      <td mat-cell *matCellDef="let user"> {{user.username}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="nickname">
+      <th mat-header-cell *matHeaderCellDef>Nickname</th>
+      <td mat-cell *matCellDef="let user"> {{user.nickname}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="win">
+      <th mat-header-cell *matHeaderCellDef>Win</th>
+      <td mat-cell *matCellDef="let user"> {{user.stats.win}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="lost">
+      <th mat-header-cell *matHeaderCellDef>Lost</th>
+      <td mat-cell *matCellDef="let user"> {{user.stats.lost}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="averagePlacement">
+      <th mat-header-cell *matHeaderCellDef>Average Placement</th>
+      <td mat-cell *matCellDef="let user"> {{user.stats.averagePlacement.toFixed(2)}} </td>
+    </ng-container>
+
+    <ng-container matColumnDef="pointsTakenPerGame">
+      <th mat-header-cell *matHeaderCellDef>Points Taken Per Game</th>
+      <td mat-cell *matCellDef="let user"> {{user.stats.pointsTakenPerGame.toFixed(2)}} </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+  <div style="justify-content: center; display: flex; height: 100vh; align-items: center" *ngIf="isLoading">
+    <app-loading-spinner></app-loading-spinner>
+  </div>
+</div>

@@ -6,6 +6,8 @@ import edu.gmu.server.model.Player;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -15,6 +17,7 @@ public class PlayerDto {
   private Integer numberOfRemainingCards;
   private boolean lastTrickTaken;
   private boolean turn;
+  private LocalDateTime turnExpireAt;
   // points information
   private int placement = 0;
   private Integer pointsTaken;
@@ -30,5 +33,6 @@ public class PlayerDto {
     this.setLastTrickTaken(player.isLastTrickTaken());
     this.setTurn(player.isTurn());
     this.setPlacement(player.getPlacement());
+    this.setTurnExpireAt(player.getTurnExpireAt());
   }
 }

@@ -14,7 +14,6 @@ public class Deck {
 
   public Deck() {
     cards = new ArrayList<>(52);
-    int i = 0;
     for (Suit suit : Suit.values()) {
       for (Rank rank : Rank.values()) {
         cards.add(new Card(suit, rank));
@@ -24,7 +23,6 @@ public class Deck {
 
   public Deck(int size) {
     cards = new ArrayList<>(16);
-    int i = 0;
     for (Suit suit : Suit.values()) {
       for (Rank rank : Arrays.stream(Rank.values()).skip(9).collect(Collectors.toList())) {
         cards.add(new Card(suit, rank));
