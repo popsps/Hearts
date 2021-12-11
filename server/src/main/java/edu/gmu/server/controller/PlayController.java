@@ -67,6 +67,10 @@ public class PlayController {
   @PostMapping("/pass-trash")
   public GameDto passTheTrash(@AuthenticationPrincipal UserDetails userDetails,
                               @RequestBody @Valid List<Card> cards) {
-    return this.playService.passTheTrash(userDetails, cards);
+    try {
+      return this.playService.passTheTrash(userDetails, cards);
+    } catch (HeartsCardNotAllowedException | HeartsPlayerNotInGameException e) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are forbidden to make such a move");
+    }
   }
 }

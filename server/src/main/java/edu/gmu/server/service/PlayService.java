@@ -233,7 +233,7 @@ public class PlayService {
     // if user in game
     if (this.gamePool.containsKey(username)) {
       GameManager gameManager = this.gamePool.get(username);
-      if (gameManager != null) {
+      if (gameManager != null && !gameManager.isAPlayerLeftTheGame()) {
         this.updateLastAccessTime(gameManager);
         Optional<Player> currentPlayerOptional = gameManager
           .getPlayers()
@@ -256,19 +256,23 @@ public class PlayService {
 
   private void handleMissedTurns(GameManager gameManager) throws JsonProcessingException {
     synchronized (gameManager) {
-      LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
-      gameManager
-        .getPlayers()
-        .stream()
-        .filter(player -> player.isTurn() && now.isAfter(player.getTurnExpireAt()))
-        .forEach(player -> {
-          gameManager.log(String.format("Player %s got disconnected", player.getNickname()));
-          log.error("Player {} is disconnected. finalizing the game...", player.getUsername());
-          gameManager.setAPlayerLeftTheGame(true);
-          player.setPointsTakenOverall(126);
-        });
-      this.resolvePlacement(gameManager);
-      this.finalizeGame(gameManager);
+      if (!gameManager.isAPlayerLeftTheGame()) {
+        LocalDateTime now = this.utilService.getCurrentDateTimeUTC();
+        gameManager
+          .getPlayers()
+          .stream()
+          .filter(player -> player.isTurn() && now.isAfter(player.getTurnExpireAt()))
+          .forEach(player -> {
+            gameManager.log(String.format("Player %s got disconnected", player.getNickname()));
+            log.error("Player {} is disconnected. finalizing the game...", player.getUsername());
+            gameManager.setAPlayerLeftTheGame(true);
+            player.setPointsTakenOverall(126);
+          });
+        if (gameManager.isAPlayerLeftTheGame()) {
+          this.resolvePlacement(gameManager);
+          this.finalizeGame(gameManager);
+        }
+      }
     }
   }
 
@@ -408,13 +412,7 @@ public class PlayService {
     synchronized (gameManager) {
       if (gameManager.getCardsRemaining() == 0) {
         log.info("Finishing up with this round...");
-        gameManager.getPlayers().forEach(player -> {
-          int points = player.getPointsTaken();
-          int pointsOverall = player.getPointsTakenOverall();
-          player.setPointsTakenOverall(pointsOverall + points);
-          player.setPointsTaken(0);
-          this.resolvePlacement(gameManager);
-        });
+        this.resolvePlacement(gameManager);
         if (this.isGameOver(gameManager)) {
           this.finalizeGame(gameManager);
         } else {
@@ -519,6 +517,10 @@ public class PlayService {
         .filter(p -> p.getId().equals(playerSorted.get(index).getId()))
         .findFirst()
         .orElseThrow(() -> new HeartsPlayerNotInGameException("Player not found"));
+      int points = player.getPointsTaken();
+      int pointsOverall = player.getPointsTakenOverall();
+      player.setPointsTakenOverall(pointsOverall + points);
+      player.setPointsTaken(0);
       if (prevPlayer != null) {
         int score = player.getPointsTakenOverall();
         int prevScore = prevPlayer.getPointsTakenOverall();
@@ -542,7 +544,7 @@ public class PlayService {
     gameManager.getPlayers().stream().forEach(player -> {
       User user = this.userRepository.findByUsername(player.getUsername())
         .orElseThrow(() -> new HeartsUserNotFoundException("Cannot find user in the database"));
-      gameManager.log(String.format("Player %s is placed at %d", player.getNickname(), player.getPlacement()));
+      gameManager.log(String.format("Player %s is placed at %dth", player.getNickname(), player.getPlacement()));
       gameManager.log(String.format("Player %s got %d points", player.getNickname(), player.getPointsTakenOverall()));
       Stats stats = user.getStats();
       int win = (player.getPlacement() == 1) ? 1 : 0;
