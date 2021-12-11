@@ -77,7 +77,10 @@ public class AuthService {
 
   @Transactional
   public Optional<User> authenticate(AuthenticateDto authenticateDto) {
-    return this.loadAuthenticatedUser(authenticateDto.getUsername(), authenticateDto.getPassword());
+    if (authenticateDto.getUsername() != null)
+      return this.loadAuthenticatedUser(authenticateDto.getUsername(), authenticateDto.getPassword());
+    else
+      return this.loadAuthenticatedUser(authenticateDto.getEmail(), authenticateDto.getPassword());
   }
 
   private Optional<User> loadAuthenticatedUser(final String id, final String password) {
