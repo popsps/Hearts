@@ -25,6 +25,7 @@ export class PlayService {
   statusInterval: Observable<number>;
   status: string;
   lookingForGame: boolean = false;
+  inGame: boolean = false;
   boardSize: number;
   wasPassTheTrash: boolean;
 

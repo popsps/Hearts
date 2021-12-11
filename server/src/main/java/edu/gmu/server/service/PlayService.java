@@ -34,7 +34,7 @@ public class PlayService {
 
   private final Card twoOfClubs = new Card(Suit.CLUBS, Rank.TWO);
   private final Card queenOfSpades = new Card(Suit.SPADES, Rank.QUEEN);
-  private final int TIME_OUT = 60000;
+  private final int TIME_OUT = 60;
   private final ConcurrentMap<String, GameManager> gamePool;
   private final ConcurrentMap<String, User> usersJoining;
   private final PoolService poolService;
@@ -87,6 +87,7 @@ public class PlayService {
     // if everyone in the game played their card
     if (board.size() == gameManager.getGAME_SIZE()) {
       currentPlayer.setTurn(false);
+      gameManager.setTwoOfClub(false);
       // calculate points and resolve who get the points
       // resolve game after delay
       CompletableFuture.runAsync(() -> {
@@ -293,10 +294,11 @@ public class PlayService {
   private void initDetermineTurn(GameManager gameManager) {
     gameManager.getPlayers().stream().forEach(player -> {
       boolean turn = false;
-      turn = player.getCards().contains(new Card(Suit.CLUBS, Rank.TWO));
+      turn = player.getCards().contains(this.twoOfClubs);
       player.setTurn(turn);
       if (player.isTurn()) {
         // bookkeeping for time, allowed cards
+        gameManager.setTwoOfClub(true);
         this.passTurn(player, gameManager);
       } else {
         this.clearTurn(player);
@@ -313,6 +315,12 @@ public class PlayService {
     player.setTurnExpireAt(null);
   }
 
+  /**
+   * set and determine the allowed cards a player can play based on the current state of the game
+   *
+   * @param player
+   * @param gameManager
+   */
   private void setAllowedCards(Player player, GameManager gameManager) {
     List<Card> cards = player.getCards();
     List<Card> allowedCards = new ArrayList<>();
@@ -321,17 +329,16 @@ public class PlayService {
     if (leadingSuit != null) {
       allowedCards = player.getCards().stream()
         .filter(card -> card.getSuit().equals(leadingSuit)).collect(Collectors.toList());
-      // if you don't have a card in the same suit
+      // if this is the first round 2 of clubs, then no hearts or queen of spades is allowed
       if (allowedCards.isEmpty()) {
-        if (gameManager.isHeartBroken()) {
-          allowedCards = cards.stream().collect(Collectors.toList());
-        } else {
-          allowedCards = cards.stream()
-            .filter(card -> !card.getSuit().equals(Suit.HEARTS))
+        if (gameManager.isTwoOfClub())
+          allowedCards = cards
+            .stream()
+            .filter(card -> !card.getSuit().equals(Suit.HEARTS) && !card.equals(this.queenOfSpades))
             .collect(Collectors.toList());
-          // case Hearts is not broken and there is no other card to play except Hearts
-          if (allowedCards.isEmpty())
-            allowedCards = cards.stream().collect(Collectors.toList());
+          // if you don't have a card in the same suit
+        else {
+          allowedCards = cards.stream().collect(Collectors.toList());
         }
       }
     } else if (cards.contains(this.twoOfClubs)) {
@@ -340,7 +347,8 @@ public class PlayService {
       if (gameManager.isHeartBroken()) {
         allowedCards = cards.stream().collect(Collectors.toList());
       } else {
-        allowedCards = cards.stream()
+        allowedCards = cards
+          .stream()
           .filter(card -> !card.getSuit().equals(Suit.HEARTS))
           .collect(Collectors.toList());
         // case Hearts is not broken and there is no other card to play except Hearts
@@ -491,18 +499,6 @@ public class PlayService {
       log.error("No players in game detected");
       throw new HeartsPlayerNotInGameException("Player not found");
     }
-  }
-
-  private boolean isCardPlayedAllowed(String username, Card card, GameManager gameManager) {
-    Player player = this.getPlayer(username, gameManager);
-    List<Card> allowedCards = player.getAllowedCards();
-    List<Card> cards = player.getCards();
-    if (player == null || allowedCards == null || cards == null)
-      return false;
-    if (!allowedCards.contains(card) || !cards.contains(card)) {
-      return false;
-    } else
-      return true;
   }
 
   private boolean isTrashCardsPlayedAllowed(String username, List<Card> cards, GameManager gameManager) {

@@ -3,6 +3,7 @@ package edu.gmu.server.controller;
 import edu.gmu.server.entity.User;
 import edu.gmu.server.entity.UserInfo;
 import edu.gmu.server.exception.HeartsBadCredentialsException;
+import edu.gmu.server.exception.HeartsException;
 import edu.gmu.server.exception.HeartsResourceNotFoundException;
 import edu.gmu.server.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -48,17 +49,22 @@ public class UserController {
   @GetMapping("/user-info")
   public User getUserInfo(@AuthenticationPrincipal UserDetails currentUser) {
     String username = currentUser.getUsername();
-    return this.userService.getUserInfo(username)
-      .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-        "Not enough privileges to access this resource"));
+    return this.userService.getUserInfo(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not enough privileges to access this resource"));
   }
 
-  @PostMapping("/profile-pic")
+  @PostMapping(value = "/profile-pic")
   @ResponseStatus(HttpStatus.CREATED)
+  @ResponseBody
   public void uploadProfilePicture(@RequestParam(name = "file", required = true) MultipartFile picture,
                                    @AuthenticationPrincipal UserDetails principal) {
     try {
-      this.userService.uploadProfilePicture(principal, picture);
+      if (picture.getContentType().equals("image/jpeg") ||
+        picture.getContentType().equals("image/jpg") ||
+        picture.getContentType().equals("image/png")) {
+        this.userService.uploadProfilePicture(principal, picture);
+      } else {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image type is not supported");
+      }
     } catch (HeartsBadCredentialsException e) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Bad Credentials");
     } catch (IOException | SQLException e) {
@@ -67,20 +73,15 @@ public class UserController {
   }
 
   @GetMapping(value = "/profile-pic", produces = MediaType.IMAGE_JPEG_VALUE)
-  public byte[] getProfilePicture(@AuthenticationPrincipal UserDetails principal,
-                                  HttpServletResponse response) {
+  public byte[] getProfilePicture(@AuthenticationPrincipal UserDetails principal, HttpServletResponse response) {
     response.setHeader("Content-disposition", "attachment; filename=profile.jpeg");
     String username = principal.getUsername();
-    return this.userService.getProfilePicture(username)
-      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NO_CONTENT,
-        "A Profile picture not found"));
+    return this.userService.getProfilePicture(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.NO_CONTENT, "A Profile picture not found"));
   }
 
   @GetMapping(value = "/profile-pic/{username}", produces = MediaType.IMAGE_JPEG_VALUE)
   public byte[] getProfilePictureByUsername(HttpServletResponse response, @PathVariable String username) {
     response.setHeader("Content-disposition", "attachment; filename=profile.jpeg");
-    return this.userService.getProfilePicture(username)
-      .orElseThrow(() -> new ResponseStatusException(HttpStatus.NO_CONTENT,
-        "A Profile picture not found"));
+    return this.userService.getProfilePicture(username).orElseThrow(() -> new ResponseStatusException(HttpStatus.NO_CONTENT, "A Profile picture not found"));
   }
 }

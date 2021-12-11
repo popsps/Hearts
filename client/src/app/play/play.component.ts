@@ -36,27 +36,10 @@ export class PlayComponent implements OnInit, OnDestroy {
       console.log('remove dangling subscriptions...');
       this.subscription.unsubscribe();
     }
+    this.playService.gameManager = null;
   }
 
   ngOnInit(): void {
-    // this.playService.heartbeat()
-    //   .subscribe({
-    //     next: res => {
-    //       this.playService.setPlay(res);
-    //       this.playService.setCards(res.you.cards);
-    //       this.cards = this.playService.getCards();
-    //       this.opponents = this.playService.getOpponents();
-    //       this.playService.board = res.board;
-    //       this.you = this.playService.gameManager.you;
-    //       const tea = new Date(this.you.turnExpireAt);
-    //       this.timer = this.playService.gameManager.timer;
-    //       this.gameStatus = this.playService.gameManager.status;
-    //       this.playService.boardSize = Object.keys(this.playService.board).length;
-    //     },
-    //     error: err => {
-    //       this.router.navigate(['/home']).then();
-    //     }
-    //   });
     this.subscription =
       this.playService.heartbeatInterval
         .pipe(takeWhile(_ => {
@@ -74,6 +57,8 @@ export class PlayComponent implements OnInit, OnDestroy {
               next: res => {
                 this.playService.setPlay(res);
                 if (this.playService.wasPassTheTrash && !this.playService.gameManager.passTheTrash)
+                  this.playService.setCardsAfterPassTheTrash(res.you.cards);
+                else if (this.playService.gameManager.cardsRemaining === 52)
                   this.playService.setCardsAfterPassTheTrash(res.you.cards);
                 else
                   this.playService.setCards(res.you.cards);
@@ -113,9 +98,9 @@ export class PlayComponent implements OnInit, OnDestroy {
     }
   }
 
-  setGameManager(res: Play, trash = false) {
+  setGameManager(res: Play, reload = false) {
     this.playService.setPlay(res);
-    if (trash)
+    if (reload)
       this.playService.setCardsAfterPassTheTrash(res.you.cards);
     else
       this.playService.setCards(res.you.cards);

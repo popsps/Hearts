@@ -1,7 +1,7 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {PlayService} from "../shared/services/play.service";
 import {Router} from "@angular/router";
-import {Subscription} from "rxjs";
+import {Subscription, takeWhile} from "rxjs";
 import {UserService} from "../shared/services/user.service";
 
 @Component({
@@ -13,17 +13,25 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   subscriptions: Subscription[] = [];
   profilePicture: any;
+  userLoading = false;
+  userError = false;
 
   constructor(public userService: UserService, public playService: PlayService, private router: Router) {
   }
 
   ngOnInit(): void {
+    this.userLoading = true;
     this.userService.getUserInfo().subscribe({
       next: value => {
         this.userService.user = value;
         this.getProfilePicture();
+        this.getPlayerStatus();
+        this.userLoading = false;
+        this.userError = false;
       },
       error: err => {
+        this.userLoading = false;
+        this.userError = true;
       }
     });
 
@@ -45,56 +53,70 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
   }
 
-//   res => {
-//   const subscription = this.playService.statusInterval.subscribe(_ => {
-//     this.playService.getStatus().subscribe(res => {
-//       this.playService.lookingForGame = false;
-//       this.router.navigate(['/play']).then();
-//     }, error => {
-//       this.playService.lookingForGame = false;
-//     });
-//   });
-// }, error => {
-//   this.playService.lookingForGame = false;
-//   this.router.navigate(['/play']).then();
-// }
   join() {
     this.playService.lookingForGame = true;
-    if (this.playService.lookingForGame) {
-      this.playService.join().subscribe({
-        next: userStatus => {
-          if (userStatus.inGame) {
-            this.playService.lookingForGame = false;
-            this.router.navigate(['/play']).then();
-          } else {
-            const sb = this.playService.statusInterval.subscribe({
-              next: _ => {
-                this.playService.getStatus().subscribe({
-                  next: userStatus => {
-                    if (userStatus.inGame) {
-                      this.playService.lookingForGame = false;
-                      this.router.navigate(['/play']).then();
-                    }
-                    if (!userStatus.inJoiningPool) {
-                      this.playService.lookingForGame = false;
-                      sb.unsubscribe();
-                    }
-                  },
-                  error: err => {
+    this.playService.join().subscribe({
+      next: userStatus => {
+        if (userStatus.inGame) {
+          this.playService.lookingForGame = false;
+          this.playService.inGame = true;
+          this.router.navigate(['/play']).then();
+        } else {
+          const sb = this.playService.statusInterval.subscribe({
+            next: _ => {
+              this.playService.getStatus().subscribe({
+                next: userStatus => {
+                  this.playService.lookingForGame = userStatus.inJoiningPool;
+                  this.playService.inGame = userStatus.inGame;
+                  if (userStatus.inGame) {
+                    this.playService.lookingForGame = false;
+                    this.playService.inGame = true;
+                    this.router.navigate(['/play']).then();
                   }
-                })
-              },
-              error: err => {
-              }
-            });
-            this.subscriptions.push(sb);
-          }
+                  if (!userStatus.inJoiningPool) {
+                    this.playService.lookingForGame = false;
+                    sb.unsubscribe();
+                  }
+                },
+                error: err => {
+                  this.playService.lookingForGame = false;
+                  this.playService.inGame = false;
+                }
+              })
+            },
+            error: err => {
+            }
+          });
+          this.subscriptions.push(sb);
+        }
+      },
+      error: err => {
+        this.playService.lookingForGame = false;
+        this.playService.inGame = false;
+      }
+    });
+  }
+
+  getPlayerStatus(): void {
+    this.playService
+      .getStatus()
+      .subscribe({
+        next: userStatus => {
+          this.playService.lookingForGame = userStatus.inJoiningPool;
+          this.playService.inGame = userStatus.inGame;
+          if (this.playService.lookingForGame)
+            this.join();
         },
         error: err => {
-
         }
       });
-    }
+  }
+
+  disconnect(): void {
+    this.playService.disconnect().subscribe(res => {
+      this.playService.lookingForGame = res.inJoiningPool;
+      this.playService.inGame = res.inGame;
+    });
   }
 
   ngOnDestroy(): void {

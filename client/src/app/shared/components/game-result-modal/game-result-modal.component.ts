@@ -22,6 +22,7 @@ export class GameResultModalComponent implements OnInit {
   leaveGame() {
     this.playService.disconnect().subscribe(res => {
       if (!res.inGame) {
+        this.playService.inGame = false;
         this.router.navigate(['/']).then();
       }
     });

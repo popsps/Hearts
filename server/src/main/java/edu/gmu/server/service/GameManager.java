@@ -35,6 +35,7 @@ public class GameManager {
   private int score = 0;
   private boolean heartBroken;
   private boolean passTheTrash;
+  private boolean twoOfClub;
   private int passTheTrashCounter;
   private Map<String, List<Card>> trash = new HashMap<>(4);
   private Deck deck;

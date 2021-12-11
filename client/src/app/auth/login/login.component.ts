@@ -43,7 +43,10 @@ export class LoginComponent implements OnInit {
     });
     this.loginForm.valueChanges.subscribe(value => {
       this.loginDto = new LoginDto();
-      this.loginDto.username = value.id;
+      if (value.id.includes('@'))
+        this.loginDto.email = value.id;
+      else
+        this.loginDto.username = value.id;
       this.loginDto.password = value.password;
     });
   }
